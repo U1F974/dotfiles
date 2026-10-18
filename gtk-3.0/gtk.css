@@ -1,0 +1,51 @@
+@import url("radius.css");
+
+/* Compact headerbars, sizes follow Fluent GTK theme (compact variant).
+   Defaults from GTK3 Adwaita in comments. Restart an app to see changes. */
+
+/* Headerbar: 36px instead of 46px */
+.titlebar:not(headerbar),
+headerbar {
+  min-height: 36px;              /* default 46px */
+}
+
+/* Buttons and entries inside headerbar: 28px instead of 34px */
+headerbar entry,
+headerbar spinbutton,
+headerbar separator:not(.sidebar),
+headerbar button {
+  margin-top: 4px;               /* default 6px */
+  margin-bottom: 4px;            /* default 6px */
+}
+headerbar button {
+  min-height: 20px;              /* default 24px */
+  padding: 3px 8px;              /* default 4px 9px */
+}
+headerbar button.image-button {
+  padding: 3px 5px;              /* default 4px 9px */
+}
+headerbar entry {
+  min-height: 28px;              /* default 34px */
+}
+
+/* Window controls (minimize, maximize, close): rounded squares like
+   calendar days in the shell, hover colors from Fluent */
+headerbar button.titlebutton:not(.appmenu) {
+  border-radius: 3px;            /* default 9999px */
+  padding: 5px;                  /* default 6px */
+  min-width: 18px;               /* default 0; 18 + 2*5 = 28px, same as height */
+}
+headerbar button.titlebutton:not(.appmenu):hover {
+  background-color: alpha(currentColor, 0.08);
+}
+headerbar button.titlebutton:not(.appmenu):active {
+  background-color: alpha(currentColor, 0.16);
+}
+headerbar button.titlebutton.close:hover {
+  background-color: #E57373;
+  color: white;
+}
+headerbar button.titlebutton.close:active {
+  background-color: #E53935;
+  color: white;
+}

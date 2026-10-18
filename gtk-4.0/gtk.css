@@ -1,0 +1,131 @@
+@import url("radius.css");
+
+/* Compact headerbars, sizes follow Fluent GTK theme (compact variant).
+   Defaults from libadwaita in comments. Restart an app to see changes. */
+
+/* Headerbar: 36px instead of 47px */
+headerbar {
+  min-height: 36px;              /* default 47px */
+}
+headerbar > windowhandle > box {
+  padding: 4px 5px;              /* default 6px 7px 7px 7px; sides +1px: headerbar has margin -1px under the window outline */
+}
+
+/* Buttons and entries inside headerbar: 28px instead of 34px */
+headerbar button {
+  min-height: 20px;              /* default 24px */
+  padding: 4px 8px;              /* default 5px 10px */
+}
+headerbar button.image-button {
+  min-width: 20px;               /* default 24px */
+  padding: 4px;                  /* default 5px */
+}
+headerbar entry {
+  min-height: 28px;              /* default 34px */
+}
+
+/* Window controls (minimize, maximize, close): rounded squares like
+   calendar days in the shell, hover colors from Fluent. Adwaita draws a
+   circle behind the icon (on the image), here the button itself is filled. */
+/* The second selector covers Chromium (GTK theme mode): it draws its window
+   buttons from GTK4 styles, but its buttons have no .image-button class */
+headerbar windowcontrols > button.image-button,
+windowcontrols > button {
+  min-width: 18px;               /* default 24px; 18 + 2*5 = 28px, same as height */
+  min-height: 16px;              /* default 24px */
+  padding: 5px;                  /* default 5px, image 4px on top */
+  border-radius: 3px;
+}
+windowcontrols > button > image,
+windowcontrols > button:hover > image,
+windowcontrols > button:active > image {
+  background: none;              /* default circle, 10%/15%/30% */
+  padding: 0;                    /* default 4px */
+}
+windowcontrols > button:hover {
+  background-color: color-mix(in srgb, currentColor 8%, transparent);
+}
+windowcontrols > button:active {
+  background-color: color-mix(in srgb, currentColor 16%, transparent);
+}
+windowcontrols > button.close:hover {
+  background-color: #E57373;
+  color: white;
+}
+windowcontrols > button.close:active {
+  background-color: #E53935;
+  color: white;
+}
+
+/* Plain titlebar of windows without own headerbar: 28px instead of 37px */
+headerbar.default-decoration {
+  min-height: 28px;              /* default 37px */
+}
+headerbar.default-decoration > windowhandle > box {
+  padding: 2px 3px;              /* default 3px 4px 4px 4px */
+}
+headerbar.default-decoration windowcontrols > button.image-button {
+  padding: 4px;                  /* default 4px, image 3px on top */
+}
+
+/* Two-line window titles (title + subtitle) are ~33px with the default line
+   height and stretch the headerbar past 36px (Text Editor, Ptyxis) */
+headerbar .title,
+headerbar .subtitle {
+  line-height: 0.8;              /* default 1 (factor of the font own line height) */
+}
+
+/* Nautilus: path bar and search entry share a stack, the tallest page sets
+   the headerbar height. Fit both into 28px. */
+.nautilus-path-button {
+  margin: 2px;                   /* default 3px */
+  padding-top: 2px;              /* default 0, our headerbar button rule set 4px */
+  padding-bottom: 2px;
+}
+.nautilus-query-editor > menubutton > button {
+  margin-top: 2px;               /* default 5px */
+  margin-bottom: 2px;            /* default 5px */
+  min-height: 20px;              /* default 24px */
+  min-width: 20px;               /* default 24px */
+  padding: 2px;
+}
+/* Nautilus own radii, matching the rest (3px) */
+.nautilus-pathbar {
+  border-radius: 3px;            /* default 9px */
+}
+.nautilus-pathbar > scrolledwindow:dir(ltr) undershoot.left {
+  border-radius: 3px 0 0 3px;    /* default 9px 0 0 9px */
+}
+.nautilus-pathbar > scrolledwindow:dir(rtl) undershoot.right {
+  border-radius: 0 3px 3px 0;    /* default 0 9px 9px 0 */
+}
+.nautilus-path-button {
+  border-radius: 2px;            /* default 7px, inside the 3px path bar */
+}
+.floating-bar {
+  border-radius: 3px;            /* default 12px */
+}
+
+/* Toolbar views with several top bars (headerbar + tab bar, as in Nautilus)
+   wrap them in .collapse-spacing, which adds 3px above and below even when
+   the tab bar is hidden. The headerbar already has its own 4px padding. */
+toolbarview > .top-bar .collapse-spacing,
+toolbarview > .bottom-bar .collapse-spacing {
+  padding-top: 0;                /* default 3px */
+  padding-bottom: 0;             /* default 3px */
+}
+
+/* Ptyxis: with a visible tab bar it adds 3px above the headerbar (its own
+   replacement for .collapse-spacing). Keep the 3px under the tabs only. */
+window.has-tab-bar .visual-bell-area {
+  padding-top: 0;                /* default 3px */
+}
+
+/* Chromium (GTK theme mode) builds its own headerbar node with the
+   .header-bar class, which real GTK4 headerbars do not have. Its side
+   padding becomes the gap next to the window buttons; the buttons are
+   centered vertically in the 46px tab strip, leaving 3px above and below. */
+headerbar.header-bar {
+  padding-left: 3px;             /* default 6px (GTK built-in theme) */
+  padding-right: 3px;            /* default 6px */
+}

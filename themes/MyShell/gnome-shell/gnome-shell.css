@@ -1,0 +1,366 @@
+@import url("resource:///org/gnome/shell/theme/gnome-shell-dark.css");
+
+/* Corner radii follow Fluent GTK theme (standard variant): 3px everywhere.
+   Previous rounder version (6px/12px): gnome-shell-round.css.bak */
+
+/* Corner radius of top panel buttons (default 999px = pill) */
+#panel .panel-button,
+#panel .panel-button.clock-display .clock,
+#panel .panel-button.screen-recording-indicator,
+#panel .panel-button.screen-sharing-indicator {
+  border-radius: 3px;
+}
+
+/* Quick settings menu */
+.quick-settings {
+  border-radius: 3px;
+}
+
+/* Toggles (Wi-Fi, Bluetooth, ...) */
+.quick-toggle,
+.quick-toggle-has-menu,
+.quick-toggle-has-menu .quick-toggle:ltr:last-child,
+.quick-toggle-has-menu .quick-toggle:rtl:last-child {
+  border-radius: 3px;
+}
+
+/* Toggles with arrow: left part + arrow part */
+.quick-toggle-has-menu .quick-toggle:ltr { border-radius: 3px 0 0 3px; }
+.quick-toggle-has-menu .quick-toggle:rtl { border-radius: 0 3px 3px 0; }
+.quick-toggle-has-menu .quick-toggle-menu-button:ltr { border-radius: 0 3px 3px 0; }
+.quick-toggle-has-menu .quick-toggle-menu-button:rtl { border-radius: 3px 0 0 3px; }
+
+/* Submenu opened by arrow */
+.quick-toggle-menu {
+  border-radius: 3px;
+}
+
+/* Top row: battery, screenshot, settings, lock, power */
+.quick-settings .icon-button {
+  border-radius: 3px;
+}
+
+/* Quick settings spacing, about a quarter less than default */
+.quick-settings {
+  padding: 8px;                /* default 18px */
+}
+
+.quick-settings-grid {
+  spacing-rows: 9px;           /* default 12px */
+  spacing-columns: 9px;        /* default 12px */
+}
+
+.quick-toggle,
+.quick-toggle-has-menu {
+  min-height: 2.455em;         /* default 3.273em */
+}
+.quick-toggle > StBoxLayout {
+  padding: 0 9px;              /* default 0 12px */
+}
+.quick-toggle:ltr > StBoxLayout { padding-left: 11px; }   /* default 15px */
+.quick-toggle:rtl > StBoxLayout { padding-right: 11px; }  /* default 15px */
+
+/* Top row */
+.quick-settings .icon-button {
+  padding: 8px;                /* default 10.5px */
+}
+.quick-settings-system-item > StBoxLayout {
+  spacing: 9px;                /* default 12px */
+}
+
+/* Submenu opened by arrow */
+.quick-toggle-menu {
+  padding: 0.614em;            /* default 0.818em */
+  margin: 9px 13px 0;          /* default 12px 18px 0 */
+}
+.quick-toggle-menu .header {
+  spacing-columns: 9px;        /* default 12px */
+  padding-bottom: 9px;         /* default 12px */
+}
+.quick-toggle-menu .header .icon {
+  padding: 7px;                /* default 9px */
+}
+/* .popup-menu-item is shared by all shell menus, so limit it to the submenu */
+.quick-toggle-menu .popup-menu-item {
+  padding: 7px 9px;            /* default 9px 12px */
+  border-radius: 3px;          /* default 12px */
+}
+
+/* Date menu (clock) */
+.datemenu-popover {
+  border-radius: 3px;          /* default 30px */
+}
+/* Today date header (hover), events, world clocks, weather */
+.datemenu-today-button,
+.events-button,
+.world-clocks-button,
+.weather-button {
+  border-radius: 3px;          /* default 12px */
+}
+/* Cards: same height as quick toggles */
+.events-button,
+.world-clocks-button,
+.weather-button {
+  padding: 0.4em 0.818em;      /* default 0.818em */
+}
+
+/* Calendar: rounded squares instead of circles, cells slightly smaller */
+.calendar .calendar-day {
+  border-radius: 3px;          /* default 999px */
+  height: 2.75em;              /* default 3em */
+  width: 2.75em;               /* default 3em */
+}
+.calendar .calendar-month-header .pager-button,
+.calendar .calendar-month-header .calendar-month-label {
+  border-radius: 3px;          /* default 999px */
+}
+
+/* Toggle switches (Do Not Disturb, extension menus), about a quarter smaller */
+.toggle-switch {
+  width: 41px;                 /* default 46px */
+}
+.toggle-switch StIcon {
+  icon-size: 14px;             /* default 16px */
+}
+.toggle-switch .handle {
+  margin: 2px;                 /* default 3px */
+  width: 18px;                 /* default 20px */
+  height: 18px;                /* default 20px */
+}
+
+/* Popup menus (panel menus, extension menus, right-click menus) */
+.popup-menu-content {
+  border-radius: 3px;          /* default 20px */
+}
+.popup-menu-item {
+  border-radius: 3px;          /* default 12px */
+}
+/* Expanded submenu: header item + submenu body below it */
+.popup-menu-item:checked {
+  border-radius: 3px 3px 0 0 !important;  /* default 12px 12px 0 0 */
+}
+.popup-sub-menu {
+  border-radius: 0 0 3px 3px;  /* default 0 0 13px 13px */
+}
+.popup-sub-menu .popup-menu-item:last-child,
+.popup-sub-menu .popup-menu-section:last-child .popup-menu-item:last-child {
+  border-radius: 0 0 3px 3px;  /* default 0 0 12px 12px */
+}
+
+/* ===== Rest of the shell: radii from Fluent (standard variant) ===== */
+
+/* Top panel in overview, lock and login screens (more specific defaults) */
+#panel:overview .panel-button,
+#panel:overview .panel-button.clock-display,
+#panel:overview .panel-button.clock-display .clock,
+#panel:overview .panel-button.screen-recording-indicator,
+#panel:overview .panel-button.screen-sharing-indicator,
+#panel.unlock-screen .panel-button,
+#panel.unlock-screen .panel-button.clock-display,
+#panel.unlock-screen .panel-button.clock-display .clock,
+#panel.unlock-screen .panel-button.screen-recording-indicator,
+#panel.unlock-screen .panel-button.screen-sharing-indicator,
+#panel.login-screen .panel-button,
+#panel.login-screen .panel-button.clock-display,
+#panel.login-screen .panel-button.clock-display .clock,
+#panel.login-screen .panel-button.screen-recording-indicator,
+#panel.login-screen .panel-button.screen-sharing-indicator {
+  border-radius: 3px;          /* default 999px */
+}
+
+/* Buttons */
+.button,
+.notification-button {
+  border-radius: 3px;          /* default 8px */
+}
+.modal-dialog .modal-dialog-button-box .modal-dialog-button {
+  border-radius: 3px;          /* default 12px */
+}
+
+/* Text entries */
+StEntry,
+.unlock-dialog .login-dialog-prompt-entry,
+.login-dialog .login-dialog-prompt-entry,
+.app-folder-dialog .folder-name-container .folder-name-entry {
+  border-radius: 3px;          /* default 8px */
+}
+.search-entry {
+  border-radius: 3px;          /* default 999px */
+}
+
+/* Check boxes */
+.check-box StBin {
+  border-radius: 3px;          /* default 7px, Fluent 100px (round) */
+}
+.check-box StIcon {
+  border-radius: 2px;          /* default 6px */
+}
+
+/* Scrollbar handles */
+StScrollBar StButton#vhandle,
+StScrollBar StButton#hhandle {
+  border-radius: 999px;        /* default 8px */
+}
+
+/* Notifications */
+.message {
+  border-radius: 3px;          /* default 16px */
+}
+.notification-banner {
+  border-radius: 6px;          /* default 16px */
+}
+.message-media-control {
+  border-radius: 999px;        /* default 8px */
+}
+.media-message .message-icon {
+  border-radius: 3px !important;  /* default 8px */
+}
+.unlock-dialog-notifications-container .notification,
+.unlock-dialog-notifications-container .unlock-dialog-notification-source {
+  border-radius: 3px;          /* default 16px */
+}
+
+/* Calendar details */
+.calendar .calendar-day-heading,
+.events-button .events-box .events-list .event-box {
+  border-radius: 3px;          /* default 8px */
+}
+.calendar .calendar-week-number {
+  border-radius: 3px;          /* default 4px */
+}
+
+/* Dialogs (power off, password prompt, ...) */
+.modal-dialog {
+  border-radius: 6px;          /* default 18px */
+}
+.end-session-dialog .end-session-dialog-battery-warning,
+.end-session-dialog .dialog-list-title,
+.login-dialog-not-listed-button,
+.unlock-dialog .button,
+.unlock-dialog .icon-button {
+  border-radius: 3px;          /* default 8px */
+}
+.login-dialog .login-dialog-auth-list-item,
+.unlock-dialog .login-dialog-auth-list-item {
+  border-radius: 3px;          /* default 9.6px */
+}
+.login-dialog-user-list-view .login-dialog-user-list .login-dialog-user-list-item,
+.audio-device-selection-dialog .audio-selection-box .audio-selection-device,
+.unlock-dialog-clock .unlock-dialog-clock-hint {
+  border-radius: 3px;          /* default 16px */
+}
+
+/* Popups: volume/brightness OSD, Alt+Tab, workspace switcher, resize */
+.osd-window,
+.resize-popup,
+.workspace-switcher {
+  border-radius: 3px;          /* default 999px */
+}
+.osd-monitor-label,
+.osd-break-countdown-label,
+.switcher-list .item-box {
+  border-radius: 3px;          /* default 16px */
+}
+.switcher-list {
+  border-radius: 3px;          /* default 28px */
+}
+.switcher-list .thumbnail {
+  border-radius: 3px;          /* default 8px */
+}
+.ws-switcher-indicator {
+  border-radius: 3px;          /* default 32px */
+}
+
+/* Input method popup, on-screen keyboard */
+.candidate-popup-content {
+  border-radius: 3px;          /* default 12px */
+}
+.candidate-box {
+  border-radius: 3px;          /* default 8px */
+}
+.candidate-page-button-previous { border-radius: 3px 0 0 3px; }  /* default 8px 0 0 8px */
+.candidate-page-button-next { border-radius: 0 3px 3px 0; }      /* default 0 8px 8px 0 */
+.keyboard-key {
+  border-radius: 3px;          /* default 0.546em */
+}
+.keyboard-subkeys-boxpointer {
+  border-radius: 3px;          /* default 22px */
+}
+.word-suggestions StButton {
+  border-radius: 3px;          /* default 4px */
+}
+
+/* Overview */
+.dash-label {
+  border-radius: 3px;          /* default 999px */
+}
+.window-caption {
+  border-radius: 6px;          /* default 999px */
+}
+#dash .dash-background {
+  border-radius: 15px;         /* default 28px */
+}
+#dash .dash-item-container .show-apps .overview-icon,
+#dash .dash-item-container .overview-tile .overview-icon,
+#dash .dash-item-container .grid-search-result .overview-icon {
+  border-radius: 6px;          /* default 16px */
+}
+.overview-tile,
+.grid-search-result {
+  border-radius: 9px;          /* default 24px */
+}
+.app-folder,
+.app-folder-dialog .overview-tile,
+.app-folder-dialog .grid-search-result {
+  border-radius: 9px;          /* default 16px */
+}
+.app-folder-dialog {
+  border-radius: 12px;         /* default 64px */
+}
+.app-grid-running-dot {
+  border-radius: 2px;          /* default 5px */
+}
+.page-navigation-hint.next:ltr,
+.page-navigation-hint.previous:rtl {
+  border-radius: 15px 0 0 15px;  /* default 24px 0 0 24px */
+}
+.page-navigation-hint.previous:ltr,
+.page-navigation-hint.next:rtl {
+  border-radius: 0 15px 15px 0;  /* default 0 24px 24px 0 */
+}
+.search-section-content {
+  border-radius: 6px;          /* default 24px */
+}
+.list-search-result,
+.search-provider-icon {
+  border-radius: 9px;          /* default 13.2px */
+}
+.workspace-thumbnails .workspace-thumbnail {
+  border-radius: 3px;          /* default 4px */
+}
+.workspace-thumbnail-indicator {
+  border-radius: 6px;          /* default 8px */
+}
+
+/* Screenshot UI */
+.screenshot-ui-panel {
+  border-radius: 27px;         /* default 32px */
+}
+.screenshot-ui-type-button {
+  border-radius: 9px;          /* default 14px */
+}
+.screenshot-ui-shot-cast-container {
+  border-radius: 6px;          /* default 999px */
+}
+.screenshot-ui-shot-cast-button {
+  border-radius: 3px;          /* default 999px */
+}
+.screenshot-ui-window-selector-window-border {
+  border-radius: 6px;          /* default 16px */
+}
+
+/* Looking Glass (Alt+F2 lg) */
+#LookingGlassDialog,
+#LookingGlassPropertyInspector {
+  border-radius: 3px;          /* default 16px */
+}

@@ -1,0 +1,11 @@
+--- a/extension.js
++++ b/extension.js
+@@ -24,7 +24,7 @@
+     }
+ 
+     disable() {
+-        this._settings?.disconnectObject();
++        this._settings?.disconnectObject(this);
+         this._settings = null;
+ 
+         Main.setThemeStylesheet(null);

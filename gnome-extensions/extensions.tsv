@@ -1,0 +1,18 @@
+# uuid	source	dconf path under /org/gnome/shell/extensions/ (- if none)
+# source: ego = extensions.gnome.org, package = gnome-shell-extensions,
+#         app = installed by its application
+accent-directories@taiwbi.com	ego	-
+add-to-desktop@tommimon.github.com	ego	-
+appgrid-size@luyao	ego	appgrid-size
+caffeine@patapon.info	ego	caffeine
+clipboard-indicator@tudmotu.com	ego	clipboard-indicator
+dash-in-panel@fthx	ego	dash-in-panel
+gtk4-ding@smedius.gitlab.com	ego	-
+just-perfection-desktop@just-perfection	ego	-
+mediacontrols@cliffniff.github.com	ego	mediacontrols
+top-bar-organizer@julian.gse.jsts.xyz	ego	top-bar-organizer
+gradia-integration@alexandervanhee.github.io	app	gradia-companion
+auto-move-windows@gnome-shell-extensions.gcampax.github.com	package	-
+drive-menu@gnome-shell-extensions.gcampax.github.com	package	-
+places-menu@gnome-shell-extensions.gcampax.github.com	package	-
+user-theme@gnome-shell-extensions.gcampax.github.com	package	user-theme
