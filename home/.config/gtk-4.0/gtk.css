@@ -31,6 +31,14 @@ headerbar button.image-button.circular {
   min-height: 24px;              /* default 34px */
   padding: 2px;                  /* default 0, our image-button rule set 4px */
 }
+/* View switcher tabs (System Monitor): 34px tall by default, and our
+   headerbar button padding made them 34px on top of that. */
+headerbar viewswitcher.wide {
+  min-height: 28px;              /* default 34px */
+}
+headerbar viewswitcher button.toggle {
+  padding: 0;                    /* default 0, our headerbar button rule set 4px 8px */
+}
 
 /* Window controls (minimize, maximize, close): rounded squares like
    calendar days in the shell, hover colors from Fluent. Adwaita draws a

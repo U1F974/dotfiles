@@ -5,6 +5,18 @@
 GNOME 48 desktop setup: the MyShell shell theme, GTK 3/4 style overrides and
 GNOME Shell extensions with their settings. Dark color scheme.
 
+## Screenshots
+
+![Headerbars and window buttons in Vesktop, System Monitor, Text Editor, Files and Fractal](screenshots/windows.png)
+
+| Quick settings | Calendar and notifications |
+| --- | --- |
+| ![Quick settings menu](screenshots/quick-settings.png) | ![Calendar and notifications menu](screenshots/calendar.png) |
+
+| Places menu | Text Editor menu |
+| --- | --- |
+| ![Places menu in the top bar](screenshots/places-menu.png) | ![Text Editor main menu](screenshots/text-editor-menu.png) |
+
 ## Install
 
 ```sh
@@ -50,6 +62,7 @@ tools/gen-radius.py                       generator for radius.css
 gnome-extensions/                         extension list, settings (dconf),
                                           install/dump scripts
 extras/user-theme-fix/                    fix for a leak in User Themes (GNOME 48)
+screenshots/                              images for this README
 ```
 
 ## MyShell theme and GTK
@@ -97,6 +110,9 @@ tools/gen-radius.py
   hidden; the padding is removed.
 - Ptyxis adds 3px above the headerbar when tabs are shown; removed.
 - Two-line titles (Text Editor, Ptyxis) use `line-height: 0.8` to fit 28px.
+- Avatar buttons (Fractal account switcher) and view switcher tabs (System
+  Monitor) were taller than 28px and stretched the headerbar and window
+  buttons; both are fitted into 28px.
 - Chromium in GTK theme mode draws its window buttons from GTK 4 styles.
   Its buttons have no `.image-button` class and its headerbar node has
   `.header-bar`, which real GTK 4 headerbars lack; the rules account for

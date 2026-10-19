@@ -5,6 +5,18 @@
 Настройка рабочего стола GNOME 48: тема shell MyShell, стили GTK 3/4 и
 расширения GNOME Shell с настройками. Темная схема.
 
+## Скриншоты
+
+![Заголовки и кнопки окон в Vesktop, System Monitor, Text Editor, Files и Fractal](screenshots/windows.png)
+
+| Быстрые настройки | Календарь и уведомления |
+| --- | --- |
+| ![Меню быстрых настроек](screenshots/quick-settings.png) | ![Меню календаря и уведомлений](screenshots/calendar.png) |
+
+| Меню Places | Меню Text Editor |
+| --- | --- |
+| ![Меню Places в верхней панели](screenshots/places-menu.png) | ![Главное меню Text Editor](screenshots/text-editor-menu.png) |
+
 ## Установка
 
 ```sh
@@ -51,6 +63,7 @@ tools/gen-radius.py                       генератор radius.css
 gnome-extensions/                         список расширений, настройки (dconf),
                                           скрипты
 extras/user-theme-fix/                    исправление утечки в User Themes (GNOME 48)
+screenshots/                              картинки для этого README
 ```
 
 ## Тема MyShell и GTK
@@ -101,6 +114,9 @@ tools/gen-radius.py
 - Ptyxis добавляет 3px над заголовком, когда открыто несколько вкладок; убрано.
 - Двухстрочные заголовки (Text Editor, Ptyxis): `line-height: 0.8`, чтобы
   влезть в 28px.
+- Кнопка с аватаром (переключатель аккаунтов Fractal) и вкладки
+  переключателя видов (System Monitor) были выше 28px и растягивали заголовок
+  и кнопки окна; обе подогнаны под 28px.
 - Chromium в режиме темы GTK рисует кнопки окна по стилям GTK 4. У его кнопок
   нет класса `.image-button`, а у его заголовка есть `.header-bar`, которого
   нет у настоящих GTK 4 заголовков; правила учитывают оба случая. Размер
