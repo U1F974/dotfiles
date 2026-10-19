@@ -32,14 +32,23 @@ headerbar entry {
    calendar days in the shell, hover colors from Fluent */
 headerbar button.titlebutton:not(.appmenu) {
   border-radius: 3px;            /* default 9999px */
+  border-width: 0;               /* default 1px, transparent but adds 2px to the size */
   padding: 5px;                  /* default 6px */
-  min-width: 18px;               /* default 0; 18 + 2*5 = 28px, same as height */
+  min-width: 18px;               /* default 0; 18 + 2*5 = 28px */
+  min-height: 18px;              /* our headerbar button rule set 20px; 18 + 2*5 = 28px */
 }
+/* Adwaita paints hover and press with a gradient background-image, which
+   covers background-color: remove it. Electron apps with the native
+   titlebar (Vesktop) draw their buttons from these styles too. */
 headerbar button.titlebutton:not(.appmenu):hover {
   background-color: alpha(currentColor, 0.08);
+  background-image: none;
+  box-shadow: none;
 }
 headerbar button.titlebutton:not(.appmenu):active {
   background-color: alpha(currentColor, 0.16);
+  background-image: none;
+  box-shadow: none;
 }
 headerbar button.titlebutton.close:hover {
   background-color: #E57373;
@@ -48,4 +57,24 @@ headerbar button.titlebutton.close:hover {
 headerbar button.titlebutton.close:active {
   background-color: #E53935;
   color: white;
+}
+
+/* Plain titlebar of windows without own headerbar. User CSS beats theme
+   CSS regardless of selector weight, so the rules above override the
+   Adwaita values here too: give them back. 4 + 28 + 4 + 1px border = 37px. */
+headerbar.default-decoration {
+  min-height: 28px;              /* our headerbar rule set 36px, Adwaita 28px */
+}
+headerbar.default-decoration button.titlebutton {
+  margin-top: 0;                 /* our headerbar button rule set 4px, Adwaita 0 */
+  margin-bottom: 0;
+}
+
+/* Electron apps with the native titlebar (Vesktop) take this titlebar from
+   the styles above and put the buttons into a windowcontrols node, which
+   real GTK 3 windows do not have. The gap between buttons is a constant
+   6px plus their side margins: pull each button 3px left to get 3px, as in
+   libadwaita. */
+windowcontrols > button.titlebutton {
+  margin-left: -3px;
 }

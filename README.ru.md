@@ -9,19 +9,28 @@
 
 ```sh
 git clone <url> ~/dots
-~/dots/install.sh                 # все
-~/dots/install.sh --no-extensions # только тема и GTK
+~/dots/install.sh        # все
+~/dots/install.sh -s -g  # только тема shell и GTK
+~/dots/install.sh -h     # все опции
 ```
 
-- Тема shell копируется в `~/.local/share/themes/MyShell` и включается через
-  расширение User Themes.
-- Стили GTK копируются в `~/.config/gtk-3.0` и `~/.config/gtk-4.0`
-  (существующие `gtk.css`/`radius.css` сохраняются с меткой времени).
+Опции: `-s` тема shell, `-g` стили GTK, `-e` расширения (без них ставятся все
+три части), `-d DIR` папка для темы shell, `-f` заодно поставить
+[исправление User Themes](#исправление-user-themes-только-gnome-48), `-u` удаление.
+
+`home/` повторяет домашнюю папку, его файлы ставятся симлинками:
+
+- Тема shell: `~/.local/share/themes/MyShell`, включается через расширение
+  User Themes.
+- Стили GTK: `~/.config/gtk-3.0` и `~/.config/gtk-4.0`.
+- Файл, который уже лежит на месте, сохраняется с меткой времени (`*.bak`);
+  копия, совпадающая с репозиторием, заменяется без бэкапа.
 - Расширения скачиваются, включаются и получают свои настройки (см. ниже).
 
-Файлы копируются, поэтому после правок в репозитории запускай `install.sh`
-снова. Потом перезапусти GTK-приложения; для новых расширений нужно выйти из
-сеанса и зайти снова.
+Правки в репозитории применяются сразу; запускать `install.sh` снова нужно
+только после добавления файлов. Чтобы увидеть изменения, перезапусти
+GTK-приложения; для новых расширений нужно выйти из сеанса и зайти снова. Не
+перемещай и не удаляй репозиторий: ссылки ведут в него.
 
 Перезагрузить тему shell вручную (на Wayland Alt+F2 `r` не работает):
 
@@ -33,13 +42,15 @@ gsettings set org.gnome.shell.extensions.user-theme name 'MyShell'
 ## Структура
 
 ```
-themes/MyShell/gnome-shell/   тема shell
-gtk-4.0/gtk.css               ручные правки GTK 4
-gtk-4.0/radius.css            сгенерирован, подключается из gtk.css
-gtk-3.0/gtk.css, radius.css   то же для GTK 3
-tools/gen-radius.py           генератор radius.css
-gnome-extensions/             список расширений, настройки, скрипты
-extras/user-theme-fix/        исправление утечки в User Themes (GNOME 48)
+home/                                     повторяет ~, install.sh ставит симлинки
+  .local/share/themes/MyShell/gnome-shell/  тема shell
+  .config/gtk-4.0/gtk.css                   ручные правки GTK 4
+  .config/gtk-4.0/radius.css                сгенерирован, подключается из gtk.css
+  .config/gtk-3.0/gtk.css, radius.css       то же для GTK 3
+tools/gen-radius.py                       генератор radius.css
+gnome-extensions/                         список расширений, настройки (dconf),
+                                          скрипты
+extras/user-theme-fix/                    исправление утечки в User Themes (GNOME 48)
 ```
 
 ## Тема MyShell и GTK
@@ -52,7 +63,7 @@ extras/user-theme-fix/        исправление утечки в User Themes
 Adwaita/libadwaita. У каждого измененного значения в CSS есть комментарий со
 стандартным.
 
-GNOME Shell (`themes/MyShell/gnome-shell/gnome-shell.css`):
+GNOME Shell (`home/.local/share/themes/MyShell/gnome-shell/gnome-shell.css`):
 - Скругление 3px почти везде: кнопки панели, быстрые настройки, меню,
   календарь, уведомления, OSD, Alt+Tab. Крупные элементы как во Fluent:
   диалоги 6px, плитки обзора 9px, док 15px.
@@ -60,7 +71,7 @@ GNOME Shell (`themes/MyShell/gnome-shell/gnome-shell.css`):
 - Дни календаря скругленные квадраты, ячейки чуть меньше.
 - Переключатели примерно на четверть меньше.
 
-GTK 4 / libadwaita (`gtk-4.0/`) и GTK 3 (`gtk-3.0/`):
+GTK 4 / libadwaita (`home/.config/gtk-4.0/`) и GTK 3 (`home/.config/gtk-3.0/`):
 - Заголовки окон 36px вместо 47px, кнопки и поля ввода в них 28px.
 - Кнопки окна квадраты 28px со скруглением; при наведении серые,
   "закрыть" красная.
@@ -77,7 +88,7 @@ GTK 4 / libadwaita (`gtk-4.0/`) и GTK 3 (`gtk-3.0/`):
 и меняет только значения. После обновления libadwaita или GTK:
 
 ```sh
-tools/gen-radius.py && ./install.sh --no-extensions
+tools/gen-radius.py
 ```
 
 ### Особенности приложений
@@ -94,6 +105,14 @@ tools/gen-radius.py && ./install.sh --no-extensions
   нет класса `.image-button`, а у его заголовка есть `.header-bar`, которого
   нет у настоящих GTK 4 заголовков; правила учитывают оба случая. Размер
   кнопок там задает сам Chromium (40px в полосе вкладок 46px).
+- Electron-приложения с системным заголовком (Vesktop) рисуют кнопки окна по
+  стилям GTK 3; `--gtk-version=4` их не переключает. Adwaita рисует наведение
+  на кнопку GTK 3 градиентом `background-image`, который закрывает
+  `background-color`, поэтому правила кнопок окна его убирают. Заголовок у
+  них по стилю `headerbar.default-decoration` (37px, кнопки 28px); промежуток
+  между кнопками у Chromium равен константе 6px плюс margin, поэтому правило
+  для `windowcontrols` (в GTK 3 этот узел есть только у Chromium) сдвигает
+  кнопки на 3px ближе.
 - Firefox, VS Code, Telegram рисуют заголовки сами, их это не касается.
 
 ## Расширения GNOME Shell
@@ -143,11 +162,11 @@ tools/gen-radius.py && ./install.sh --no-extensions
 ## Удаление
 
 ```sh
-rm -r ~/.local/share/themes/MyShell
-rm ~/.config/gtk-4.0/gtk.css ~/.config/gtk-4.0/radius.css
-rm ~/.config/gtk-3.0/gtk.css ~/.config/gtk-3.0/radius.css
-gsettings reset org.gnome.shell.extensions.user-theme name
+~/dots/install.sh -u
 ```
 
-Если `install.sh` делал бэкапы `*.bak` в `~/.config/gtk-*`, верни их.
-Расширения удаляются командой `gnome-extensions uninstall <uuid>`.
+Возвращает User Themes к стандартной теме, удаляет ссылки на репозиторий
+(тема shell, `gtk.css`/`radius.css` в `~/.config/gtk-*`) и возвращает самый
+свежий `*.bak` каждого. Файлы, которые не ссылаются на репозиторий, не
+трогает.
+Расширения не удаляются: `gnome-extensions uninstall <uuid>`.

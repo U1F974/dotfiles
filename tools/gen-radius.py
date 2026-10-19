@@ -8,8 +8,8 @@ this script copies every radius rule from the built-in theme CSS, keeps the
 selectors and their order, and only rewrites the values. Run it again after
 libadwaita or GTK updates.
 
-Usage: tools/gen-radius.py      # writes gtk-{3,4}.0/radius.css in the repo,
-                                 # then run install.sh to copy them
+Usage: tools/gen-radius.py      # writes home/.config/gtk-{3,4}.0/radius.css
+                                 # in the repo (installed as symlinks)
 """
 
 import re
@@ -121,7 +121,7 @@ def generate(css, version):
 
 def main():
     for version, (lib, path) in SOURCES.items():
-        target = REPO / f'gtk-{version}' / 'radius.css'
+        target = REPO / 'home' / '.config' / f'gtk-{version}' / 'radius.css'
         target.write_text(generate(extract(lib, path), version))
         print('wrote', target)
 

@@ -47,23 +47,26 @@ grep -v '^#' "$DIR/extensions.tsv" | while IFS='	' read -r uuid source path; do
     fi
 done
 
-# Add every listed uuid to enabled-extensions (keeping ones enabled already)
-# and take them out of disabled-extensions.
+# gsettings prints a GVariant string list: ['a', 'b'], or @as [] when empty.
+# uuids have no quotes, commas or spaces, so strip those and split on commas.
+get_list() {
+    gsettings get org.gnome.shell "$1" |
+        sed "s/^@as //; s/[][' ]//g" | tr ',' '\n' | sed '/^$/d'
+}
+
+# Read uuids from stdin, one per line, and write them back as ['a', 'b'].
+put_list() {
+    gsettings set org.gnome.shell "$1" \
+        "[$(sed "s/.*/'&'/" | paste -sd , - | sed 's/,/, /g')]"
+}
+
+# Add every listed uuid to enabled-extensions (keeping ones enabled already,
+# awk drops duplicates and keeps the order) and take them out of
+# disabled-extensions. `gnome-extensions enable` cannot do this: it only knows
+# extensions the running shell has loaded, and new ones load after the next
+# login.
 uuids=$(grep -v '^#' "$DIR/extensions.tsv" | cut -f1)
-python3 - "$uuids" <<'EOF'
-import ast, subprocess, sys
-
-def get(key):
-    out = subprocess.run(['gsettings', 'get', 'org.gnome.shell', key],
-                         check=True, capture_output=True, text=True).stdout
-    return ast.literal_eval(out.replace('@as ', ''))
-
-def put(key, value):
-    subprocess.run(['gsettings', 'set', 'org.gnome.shell', key, str(value)], check=True)
-
-wanted = sys.argv[1].split()
-enabled = get('enabled-extensions')
-put('enabled-extensions', enabled + [u for u in wanted if u not in enabled])
-put('disabled-extensions', [u for u in get('disabled-extensions') if u not in wanted])
-EOF
+{ get_list enabled-extensions; printf '%s\n' "$uuids"; } |
+    awk '!seen[$0]++' | put_list enabled-extensions
+get_list disabled-extensions | grep -vxF "$uuids" | put_list disabled-extensions
 echo "enabled-extensions updated; log out and back in to load new extensions"

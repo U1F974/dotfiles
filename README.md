@@ -1,4 +1,4 @@
-# dots
+# dotfiles
 
 [Русская версия](README.ru.md)
 
@@ -8,19 +8,28 @@ GNOME Shell extensions with their settings. Dark color scheme.
 ## Install
 
 ```sh
-git clone <url> ~/dots
-~/dots/install.sh                 # everything
-~/dots/install.sh --no-extensions # theme and GTK only
+git clone <url> ~/dotfiles
+~/dotfiles/install.sh        # everything
+~/dotfiles/install.sh -s -g  # shell theme and GTK only
+~/dotfiles/install.sh -h     # all options
 ```
 
-- Shell theme is copied to `~/.local/share/themes/MyShell` and enabled
-  through the User Themes extension.
-- GTK styles are copied to `~/.config/gtk-3.0` and `~/.config/gtk-4.0`
-  (existing `gtk.css`/`radius.css` are backed up with a timestamp).
+Options: `-s` shell theme, `-g` GTK styles, `-e` extensions (none of them
+means all three), `-d DIR` shell theme directory, `-f` also install the
+[User Themes fix](#user-themes-fix-gnome-48-only), `-u` uninstall.
+
+`home/` mirrors the home directory, and its files are symlinked into place:
+
+- Shell theme: `~/.local/share/themes/MyShell`, enabled through the User
+  Themes extension.
+- GTK styles: `~/.config/gtk-3.0` and `~/.config/gtk-4.0`.
+- A file already in place is backed up with a timestamp (`*.bak`); a copy
+  identical to the repo is replaced without a backup.
 - Extensions are downloaded, enabled and get their settings (see below).
 
-Files are copied, so run `install.sh` again after editing the repo. Restart
-GTK apps afterwards; log out and back in for newly installed extensions.
+Edits in the repo apply right away; run `install.sh` again only after adding
+files. Restart GTK apps to see changes; log out and back in for newly
+installed extensions. Do not move or delete the repo: the links point into it.
 
 To reload the shell theme by hand (Alt+F2 `r` does not work on Wayland):
 
@@ -32,13 +41,15 @@ gsettings set org.gnome.shell.extensions.user-theme name 'MyShell'
 ## Layout
 
 ```
-themes/MyShell/gnome-shell/   shell theme
-gtk-4.0/gtk.css               hand-written GTK 4 overrides
-gtk-4.0/radius.css            generated, imported by gtk.css
-gtk-3.0/gtk.css, radius.css   same for GTK 3
-tools/gen-radius.py           generator for radius.css
-gnome-extensions/             extension list, settings, install/dump scripts
-extras/user-theme-fix/        fix for a leak in User Themes (GNOME 48)
+home/                                     mirrors ~, symlinked by install.sh
+  .local/share/themes/MyShell/gnome-shell/  shell theme
+  .config/gtk-4.0/gtk.css                   hand-written GTK 4 overrides
+  .config/gtk-4.0/radius.css                generated, imported by gtk.css
+  .config/gtk-3.0/gtk.css, radius.css       same for GTK 3
+tools/gen-radius.py                       generator for radius.css
+gnome-extensions/                         extension list, settings (dconf),
+                                          install/dump scripts
+extras/user-theme-fix/                    fix for a leak in User Themes (GNOME 48)
 ```
 
 ## MyShell theme and GTK
@@ -50,7 +61,7 @@ shell theme imports the stock `gnome-shell-dark.css` and overrides it; the GTK
 part is user CSS on top of Adwaita/libadwaita. Every changed value in the CSS
 has the stock value in a comment.
 
-GNOME Shell (`themes/MyShell/gnome-shell/gnome-shell.css`):
+GNOME Shell (`home/.local/share/themes/MyShell/gnome-shell/gnome-shell.css`):
 - Corner radius 3px almost everywhere: panel buttons, quick settings, menus,
   calendar, notifications, OSD, Alt+Tab. Larger elements follow Fluent:
   dialogs 6px, overview tiles 9px, dash 15px.
@@ -58,7 +69,7 @@ GNOME Shell (`themes/MyShell/gnome-shell/gnome-shell.css`):
 - Calendar days are rounded squares, cells slightly smaller.
 - Toggle switches about a quarter smaller.
 
-GTK 4 / libadwaita (`gtk-4.0/`) and GTK 3 (`gtk-3.0/`):
+GTK 4 / libadwaita (`home/.config/gtk-4.0/`) and GTK 3 (`home/.config/gtk-3.0/`):
 - Headerbars 36px instead of 47px, buttons and entries 28px.
 - Window buttons are 28px rounded squares; hover is gray, close turns red.
 - Corner radius 3px for windows, menus, buttons, entries, lists, cards.
@@ -74,7 +85,7 @@ libadwaita and GTK 3 Adwaita CSS, keeps selectors and their order, and only
 rewrites the values. Regenerate after libadwaita or GTK updates:
 
 ```sh
-tools/gen-radius.py && ./install.sh --no-extensions
+tools/gen-radius.py
 ```
 
 ### App-specific notes
@@ -90,6 +101,13 @@ tools/gen-radius.py && ./install.sh --no-extensions
   Its buttons have no `.image-button` class and its headerbar node has
   `.header-bar`, which real GTK 4 headerbars lack; the rules account for
   both. Button size there is Chromium's own (40px in a 46px tab strip).
+- Electron apps with the native titlebar (Vesktop) draw their window buttons
+  from GTK 3 styles; `--gtk-version=4` does not switch them. Adwaita paints
+  GTK 3 button hover with a gradient `background-image` that hides
+  `background-color`, so the title button rules remove it. Their titlebar
+  is `headerbar.default-decoration` (37px, 28px buttons); the gap between
+  buttons is Chromium's constant 6px plus margins, so a `windowcontrols`
+  rule (a node only Chromium has in GTK 3) pulls buttons 3px closer.
 - Firefox, VS Code, Telegram draw their own titlebars and are not affected.
 
 ## GNOME Shell extensions
@@ -138,11 +156,10 @@ and once it stops loading it still shadows the system extension.
 ## Uninstall
 
 ```sh
-rm -r ~/.local/share/themes/MyShell
-rm ~/.config/gtk-4.0/gtk.css ~/.config/gtk-4.0/radius.css
-rm ~/.config/gtk-3.0/gtk.css ~/.config/gtk-3.0/radius.css
-gsettings reset org.gnome.shell.extensions.user-theme name
+~/dotfiles/install.sh -u
 ```
 
-Restore `*.bak` files from `~/.config/gtk-*` if `install.sh` made any.
-Extensions are removed with `gnome-extensions uninstall <uuid>`.
+Resets User Themes to the default theme, removes the links to the repo
+(shell theme, `gtk.css`/`radius.css` in `~/.config/gtk-*`) and puts back the
+newest `*.bak` of each. Files that are not links to the repo are left alone.
+Extensions are not removed: `gnome-extensions uninstall <uuid>`.

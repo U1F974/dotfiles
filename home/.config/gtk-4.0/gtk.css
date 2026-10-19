@@ -23,6 +23,14 @@ headerbar button.image-button {
 headerbar entry {
   min-height: 28px;              /* default 34px */
 }
+/* Circular buttons: Fractal puts a 24px avatar into one, with 4px padding
+   it is 32px tall and stretches the headerbar and the window controls.
+   24px content + 2*2px = 28px, for an avatar and for a 16px icon alike. */
+headerbar button.image-button.circular {
+  min-width: 24px;               /* default 34px */
+  min-height: 24px;              /* default 34px */
+  padding: 2px;                  /* default 0, our image-button rule set 4px */
+}
 
 /* Window controls (minimize, maximize, close): rounded squares like
    calendar days in the shell, hover colors from Fluent. Adwaita draws a
