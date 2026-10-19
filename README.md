@@ -19,16 +19,39 @@ GNOME Shell extensions with their settings. Dark color scheme.
 
 ## Install
 
+Run the following commands in the terminal:
+
 ```sh
-git clone <url> ~/dotfiles
-~/dotfiles/install.sh        # everything
-~/dotfiles/install.sh -s -g  # shell theme and GTK only
-~/dotfiles/install.sh -h     # all options
+git clone https://github.com/U1F974/dotfiles.git ~/dotfiles
+~/dotfiles/install.sh
 ```
 
-Options: `-s` shell theme, `-g` GTK styles, `-e` extensions (none of them
-means all three), `-d DIR` shell theme directory, `-f` also install the
-[User Themes fix](#user-themes-fix-gnome-48-only), `-u` uninstall.
+> Tip: `./install.sh` allows the following options:
+
+```
+-s, --shell           Shell theme MyShell, enabled through User Themes
+
+-g, --gtk             GTK 3/4 styles in ~/.config/gtk-{3.0,4.0}
+
+-e, --extensions      GNOME Shell extensions and their settings
+
+-d, --dest DIR        Directory for the shell theme
+                      (Default: ~/.local/share/themes);
+                      User Themes also reads ~/.themes and /usr/share/themes
+
+-f, --user-theme-fix  Also install the patched User Themes (GNOME 48 only)
+
+-u, --uninstall       Remove the links to the shell theme and GTK styles,
+                      restore the newest backups (extensions are not removed)
+
+-h, --help            Show help
+```
+
+Without `-s`, `-g` or `-e` all three parts are installed. For example,
+`./install.sh -s -g` installs the shell theme and GTK styles only. See
+[User Themes fix](#user-themes-fix-gnome-48-only) for `-f`.
+
+> For more information, run: `./install.sh --help`
 
 `home/` mirrors the home directory, and its files are symlinked into place:
 

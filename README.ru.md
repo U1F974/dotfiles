@@ -1,4 +1,4 @@
-# dots
+# dotfiles
 
 [English version](README.md)
 
@@ -19,16 +19,39 @@
 
 ## Установка
 
+Выполни в терминале:
+
 ```sh
-git clone <url> ~/dots
-~/dots/install.sh        # все
-~/dots/install.sh -s -g  # только тема shell и GTK
-~/dots/install.sh -h     # все опции
+git clone https://github.com/U1F974/dotfiles.git ~/dotfiles
+~/dotfiles/install.sh
 ```
 
-Опции: `-s` тема shell, `-g` стили GTK, `-e` расширения (без них ставятся все
-три части), `-d DIR` папка для темы shell, `-f` заодно поставить
-[исправление User Themes](#исправление-user-themes-только-gnome-48), `-u` удаление.
+> Совет: `./install.sh` принимает такие опции:
+
+```
+-s, --shell           Тема shell MyShell, включается через User Themes
+
+-g, --gtk             Стили GTK 3/4 в ~/.config/gtk-{3.0,4.0}
+
+-e, --extensions      Расширения GNOME Shell и их настройки
+
+-d, --dest DIR        Папка для темы shell
+                      (по умолчанию: ~/.local/share/themes);
+                      User Themes читает еще ~/.themes и /usr/share/themes
+
+-f, --user-theme-fix  Заодно поставить исправленный User Themes (только GNOME 48)
+
+-u, --uninstall       Удалить ссылки на тему shell и стили GTK, вернуть
+                      самые свежие бэкапы (расширения не удаляются)
+
+-h, --help            Показать справку
+```
+
+Без `-s`, `-g` и `-e` ставятся все три части. Например, `./install.sh -s -g`
+ставит только тему shell и стили GTK. Про `-f` см.
+[исправление User Themes](#исправление-user-themes-только-gnome-48).
+
+> Подробнее: `./install.sh --help`
 
 `home/` повторяет домашнюю папку, его файлы ставятся симлинками:
 
@@ -178,7 +201,7 @@ tools/gen-radius.py
 ## Удаление
 
 ```sh
-~/dots/install.sh -u
+~/dotfiles/install.sh -u
 ```
 
 Возвращает User Themes к стандартной теме, удаляет ссылки на репозиторий
