@@ -1,0 +1,29 @@
+/* Window buttons (minimize, maximize, close) like GTK 4 headerbars in these
+   dots: 28px rounded squares without a background, hover colors from Fluent.
+   Firefox draws them with its own CSS (browser.css), not with GTK.
+   userChrome.css is a user style sheet: it beats Firefox rules only with
+   !important. Defaults from Firefox in comments. Restart Firefox to see
+   changes. */
+.titlebar-buttonbox {
+  --titlebar-button-size: 28px !important;        /* default 24px */
+  --titlebar-button-spacing: 1.5px !important;    /* default 6.5px; padding on each side, 3px gap as in libadwaita */
+  --titlebar-button-end-spacing: 4px !important;  /* default 10px */
+}
+.titlebar-button > .toolbarbutton-icon {
+  border-radius: 3px !important;                  /* default circle */
+  background-color: transparent !important;       /* default currentColor 10% */
+}
+.titlebar-button:hover > .toolbarbutton-icon {
+  background-color: color-mix(in srgb, currentColor 8%, transparent) !important;   /* default 15% */
+}
+.titlebar-button:hover:active > .toolbarbutton-icon {
+  background-color: color-mix(in srgb, currentColor 16%, transparent) !important;  /* default 30% */
+}
+.titlebar-close:hover > .toolbarbutton-icon {
+  background-color: #E57373 !important;
+  color: white !important;                        /* the icon is stroked with currentColor */
+}
+.titlebar-close:hover:active > .toolbarbutton-icon {
+  background-color: #E53935 !important;
+  color: white !important;
+}

@@ -35,19 +35,22 @@ git clone https://github.com/U1F974/dotfiles.git ~/dotfiles
 
 -e, --extensions      GNOME Shell extensions and their settings
 
+-F, --firefox         Firefox window buttons (userChrome.css) in the
+                      default profile
+
 -d, --dest DIR        Directory for the shell theme
                       (Default: ~/.local/share/themes);
                       User Themes also reads ~/.themes and /usr/share/themes
 
 -f, --user-theme-fix  Also install the patched User Themes (GNOME 48 only)
 
--u, --uninstall       Remove the links to the shell theme and GTK styles,
-                      restore the newest backups (extensions are not removed)
+-u, --uninstall       Remove the links to the repo, restore the newest
+                      backups (extensions are not removed)
 
 -h, --help            Show help
 ```
 
-Without `-s`, `-g` or `-e` all three parts are installed. For example,
+Without `-s`, `-g`, `-e` or `-F` all four parts are installed. For example,
 `./install.sh -s -g` installs the shell theme and GTK styles only. See
 [User Themes fix](#user-themes-fix-gnome-48-only) for `-f`.
 
@@ -58,6 +61,9 @@ Without `-s`, `-g` or `-e` all three parts are installed. For example,
 - Shell theme: `~/.local/share/themes/MyShell`, enabled through the User
   Themes extension.
 - GTK styles: `~/.config/gtk-3.0` and `~/.config/gtk-4.0`.
+- Firefox: `firefox/` mirrors the profile directory and is linked into the
+  profile Firefox uses (`[Install*] Default=` in `profiles.ini`, else the
+  profile with `Default=1`).
 - A file already in place is backed up with a timestamp (`*.bak`); a copy
   identical to the repo is replaced without a backup.
 - Extensions are downloaded, enabled and get their settings (see below).
@@ -85,6 +91,9 @@ tools/gen-radius.py                       generator for radius.css
 gnome-extensions/                         extension list, settings (dconf),
                                           install/dump scripts
 extras/user-theme-fix/                    fix for a leak in User Themes (GNOME 48)
+firefox/                                  mirrors the Firefox profile:
+  chrome/userChrome.css                     window buttons
+  user.js                                   makes Firefox read userChrome.css
 screenshots/                              images for this README
 ```
 
@@ -147,7 +156,13 @@ tools/gen-radius.py
   is `headerbar.default-decoration` (37px, 28px buttons); the gap between
   buttons is Chromium's constant 6px plus margins, so a `windowcontrols`
   rule (a node only Chromium has in GTK 3) pulls buttons 3px closer.
-- Firefox, VS Code, Telegram draw their own titlebars and are not affected.
+- Firefox draws its window buttons with its own CSS, not with GTK:
+  `firefox/chrome/userChrome.css` makes them the same 28px rounded squares.
+  It needs `toolkit.legacyUserProfileCustomizations.stylesheets`, set in
+  `firefox/user.js`. Restart Firefox after changes.
+- Telegram with the system window frame on Wayland gets it from the Qt
+  plugin `libadwaita.so`, which draws its own round buttons and reads no CSS;
+  left as is. VS Code draws its own titlebar and is not affected.
 
 ## GNOME Shell extensions
 
@@ -199,6 +214,7 @@ and once it stops loading it still shadows the system extension.
 ```
 
 Resets User Themes to the default theme, removes the links to the repo
-(shell theme, `gtk.css`/`radius.css` in `~/.config/gtk-*`) and puts back the
+(shell theme, `gtk.css`/`radius.css` in `~/.config/gtk-*`, Firefox
+`userChrome.css` and `user.js`) and puts back the
 newest `*.bak` of each. Files that are not links to the repo are left alone.
 Extensions are not removed: `gnome-extensions uninstall <uuid>`.

@@ -35,19 +35,22 @@ git clone https://github.com/U1F974/dotfiles.git ~/dotfiles
 
 -e, --extensions      Расширения GNOME Shell и их настройки
 
+-F, --firefox         Кнопки окна Firefox (userChrome.css) в профиле
+                      по умолчанию
+
 -d, --dest DIR        Папка для темы shell
                       (по умолчанию: ~/.local/share/themes);
                       User Themes читает еще ~/.themes и /usr/share/themes
 
 -f, --user-theme-fix  Заодно поставить исправленный User Themes (только GNOME 48)
 
--u, --uninstall       Удалить ссылки на тему shell и стили GTK, вернуть
-                      самые свежие бэкапы (расширения не удаляются)
+-u, --uninstall       Удалить ссылки на репозиторий, вернуть самые свежие
+                      бэкапы (расширения не удаляются)
 
 -h, --help            Показать справку
 ```
 
-Без `-s`, `-g` и `-e` ставятся все три части. Например, `./install.sh -s -g`
+Без `-s`, `-g`, `-e` и `-F` ставятся все четыре части. Например, `./install.sh -s -g`
 ставит только тему shell и стили GTK. Про `-f` см.
 [исправление User Themes](#исправление-user-themes-только-gnome-48).
 
@@ -58,6 +61,9 @@ git clone https://github.com/U1F974/dotfiles.git ~/dotfiles
 - Тема shell: `~/.local/share/themes/MyShell`, включается через расширение
   User Themes.
 - Стили GTK: `~/.config/gtk-3.0` и `~/.config/gtk-4.0`.
+- Firefox: `firefox/` повторяет папку профиля и ставится в профиль, которым
+  пользуется Firefox (`[Install*] Default=` в `profiles.ini`, иначе профиль с
+  `Default=1`).
 - Файл, который уже лежит на месте, сохраняется с меткой времени (`*.bak`);
   копия, совпадающая с репозиторием, заменяется без бэкапа.
 - Расширения скачиваются, включаются и получают свои настройки (см. ниже).
@@ -86,6 +92,9 @@ tools/gen-radius.py                       генератор radius.css
 gnome-extensions/                         список расширений, настройки (dconf),
                                           скрипты
 extras/user-theme-fix/                    исправление утечки в User Themes (GNOME 48)
+firefox/                                  повторяет профиль Firefox:
+  chrome/userChrome.css                     кнопки окна
+  user.js                                   включает чтение userChrome.css
 screenshots/                              картинки для этого README
 ```
 
@@ -152,7 +161,14 @@ tools/gen-radius.py
   между кнопками у Chromium равен константе 6px плюс margin, поэтому правило
   для `windowcontrols` (в GTK 3 этот узел есть только у Chromium) сдвигает
   кнопки на 3px ближе.
-- Firefox, VS Code, Telegram рисуют заголовки сами, их это не касается.
+- Firefox рисует кнопки окна своим CSS, а не через GTK:
+  `firefox/chrome/userChrome.css` делает их такими же квадратами 28px со
+  скруглением. Для этого нужна настройка
+  `toolkit.legacyUserProfileCustomizations.stylesheets` из `firefox/user.js`.
+  После правок перезапусти Firefox.
+- Telegram с системной рамкой на Wayland получает ее от Qt-плагина
+  `libadwaita.so`, который сам рисует круглые кнопки и CSS не читает;
+  оставлено как есть. VS Code рисует заголовок сам, его это не касается.
 
 ## Расширения GNOME Shell
 
@@ -205,7 +221,8 @@ tools/gen-radius.py
 ```
 
 Возвращает User Themes к стандартной теме, удаляет ссылки на репозиторий
-(тема shell, `gtk.css`/`radius.css` в `~/.config/gtk-*`) и возвращает самый
+(тема shell, `gtk.css`/`radius.css` в `~/.config/gtk-*`, `userChrome.css` и
+`user.js` Firefox) и возвращает самый
 свежий `*.bak` каждого. Файлы, которые не ссылаются на репозиторий, не
 трогает.
 Расширения не удаляются: `gnome-extensions uninstall <uuid>`.
