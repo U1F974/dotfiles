@@ -35,8 +35,8 @@ git clone https://github.com/U1F974/dotfiles.git ~/dotfiles
 
 -e, --extensions      Расширения GNOME Shell и их настройки
 
--F, --firefox         Кнопки окна Firefox (userChrome.css) в профиле
-                      по умолчанию
+-F, --firefox         Кнопки окна Firefox и LibreWolf (userChrome.css)
+                      в их профилях по умолчанию
 
 -d, --dest DIR        Папка для темы shell
                       (по умолчанию: ~/.local/share/themes);
@@ -61,9 +61,11 @@ git clone https://github.com/U1F974/dotfiles.git ~/dotfiles
 - Тема shell: `~/.local/share/themes/MyShell`, включается через расширение
   User Themes.
 - Стили GTK: `~/.config/gtk-3.0` и `~/.config/gtk-4.0`.
-- Firefox: `firefox/` повторяет папку профиля и ставится в профиль, которым
-  пользуется Firefox (`[Install*] Default=` в `profiles.ini`, иначе профиль с
-  `Default=1`).
+- Firefox и LibreWolf: `firefox/` повторяет папку профиля и ставится в
+  профиль, которым пользуется каждый браузер (`[Install*] Default=` в
+  `profiles.ini`, иначе профиль с `Default=1`). Профили ищутся в
+  `~/.config/mozilla/firefox` или `~/.mozilla/firefox` и в
+  `~/.config/librewolf/librewolf` или `~/.librewolf`.
 - Файл, который уже лежит на месте, сохраняется с меткой времени (`*.bak`);
   копия, совпадающая с репозиторием, заменяется без бэкапа.
 - Расширения скачиваются, включаются и получают свои настройки (см. ниже).
@@ -92,7 +94,7 @@ tools/gen-radius.py                       генератор radius.css
 gnome-extensions/                         список расширений, настройки (dconf),
                                           скрипты
 extras/user-theme-fix/                    исправление утечки в User Themes (GNOME 48)
-firefox/                                  повторяет профиль Firefox:
+firefox/                                  повторяет профиль Firefox/LibreWolf:
   chrome/userChrome.css                     кнопки окна
   user.js                                   включает чтение userChrome.css
 screenshots/                              картинки для этого README
@@ -161,11 +163,11 @@ tools/gen-radius.py
   между кнопками у Chromium равен константе 6px плюс margin, поэтому правило
   для `windowcontrols` (в GTK 3 этот узел есть только у Chromium) сдвигает
   кнопки на 3px ближе.
-- Firefox рисует кнопки окна своим CSS, а не через GTK:
+- Firefox и LibreWolf рисуют кнопки окна своим CSS, а не через GTK:
   `firefox/chrome/userChrome.css` делает их такими же квадратами 28px со
   скруглением. Для этого нужна настройка
   `toolkit.legacyUserProfileCustomizations.stylesheets` из `firefox/user.js`.
-  После правок перезапусти Firefox.
+  После правок перезапусти браузер.
 - Telegram с системной рамкой на Wayland получает ее от Qt-плагина
   `libadwaita.so`, который сам рисует круглые кнопки и CSS не читает;
   оставлено как есть. VS Code рисует заголовок сам, его это не касается.
@@ -222,7 +224,7 @@ tools/gen-radius.py
 
 Возвращает User Themes к стандартной теме, удаляет ссылки на репозиторий
 (тема shell, `gtk.css`/`radius.css` в `~/.config/gtk-*`, `userChrome.css` и
-`user.js` Firefox) и возвращает самый
+`user.js` в Firefox и LibreWolf) и возвращает самый
 свежий `*.bak` каждого. Файлы, которые не ссылаются на репозиторий, не
 трогает.
 Расширения не удаляются: `gnome-extensions uninstall <uuid>`.

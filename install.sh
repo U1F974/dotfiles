@@ -6,8 +6,8 @@
 # home/.local/share/themes/MyShell goes to ~/.local/share/themes/MyShell
 # (enabled through the User Themes extension), home/.config/gtk-* to
 # ~/.config/gtk-*: libadwaita apps ignore GTK themes and only read user CSS
-# from there. firefox/ mirrors the Firefox profile (found through
-# profiles.ini). A file already in place is backed up with a timestamp.
+# from there. firefox/ mirrors a Firefox profile and goes to the profiles of
+# Firefox and LibreWolf (found through profiles.ini). A file already in place is backed up with a timestamp.
 # Edits in the repo apply right away; run this again after adding files.
 #
 # Run with -h for the options.
@@ -31,8 +31,8 @@ OPTIONS:
   -s, --shell           Shell theme MyShell, enabled through User Themes
   -g, --gtk             GTK 3/4 styles in $CONFIG/gtk-{3.0,4.0}
   -e, --extensions      GNOME Shell extensions and their settings
-  -F, --firefox         Firefox window buttons (userChrome.css) in the
-                        default profile
+  -F, --firefox         Firefox and LibreWolf window buttons (userChrome.css)
+                        in their default profiles
   -d, --dest DIR        Directory for the shell theme
                         (default: $DEST_DEFAULT);
                         User Themes also reads ~/.themes and /usr/share/themes
@@ -85,11 +85,12 @@ unlink_tree() {
     done
 }
 
-# Print the directory of the Firefox profile in use: the default of the
-# installed Firefox ([Install*] Default=), else the profile with Default=1.
-# Firefox 147+ keeps new profiles in ~/.config/mozilla, older in ~/.mozilla.
-firefox_profile() {
-    for dir in "$CONFIG/mozilla/firefox" "$HOME/.mozilla/firefox"; do
+# Print the directory of the profile in use of a Firefox-based browser whose
+# profiles.ini is in one of the given directories (the first one found): the
+# default of the installed browser ([Install*] Default=), else the profile
+# with Default=1.
+browser_profile() {
+    for dir in "$@"; do
         [ -f "$dir/profiles.ini" ] || continue
         path=$(awk -F= '
             /^\[/ { sec = $0; next }
@@ -104,6 +105,18 @@ firefox_profile() {
             *) echo "$dir/$path" ;;
         esac
         return
+    done
+}
+
+# Profiles of Firefox and LibreWolf, one per line. Both moved to XDG
+# directories (Firefox 147+: ~/.config/mozilla), older ones use ~/.mozilla
+# and ~/.librewolf.
+firefox_profiles() {
+    for p in "$(browser_profile "$CONFIG/mozilla/firefox" "$HOME/.mozilla/firefox")" \
+             "$(browser_profile "$CONFIG/librewolf/librewolf" "$HOME/.librewolf")"; do
+        if [ -n "$p" ] && [ -d "$p" ]; then
+            echo "$p"
+        fi
     done
 }
 
@@ -151,9 +164,9 @@ THEME_SRC="$HOME_SRC/.local/share/themes/MyShell"
 THEME_DIR="$DEST/MyShell"
 
 if [ $DO_FF = 1 ]; then
-    FF_PROFILE=$(firefox_profile)
-    if [ -z "$FF_PROFILE" ] || [ ! -d "$FF_PROFILE" ]; then
-        echo "Firefox profile not found (start Firefox once), skipping Firefox" >&2
+    FF_PROFILES=$(firefox_profiles)
+    if [ -z "$FF_PROFILES" ]; then
+        echo "no Firefox or LibreWolf profile found (start the browser once), skipping" >&2
         DO_FF=0
     fi
 fi
@@ -165,7 +178,9 @@ if [ $UNINSTALL = 1 ]; then
             echo "shell theme reset to default"
         fi
         unlink_tree "$THEME_SRC" "$THEME_DIR"
-        [ -d "$THEME_DIR" ] && find "$THEME_DIR" -depth -type d -empty -delete
+        if [ -d "$THEME_DIR" ]; then
+            find "$THEME_DIR" -depth -type d -empty -delete
+        fi
     fi
 
     if [ $DO_GTK = 1 ]; then
@@ -175,8 +190,12 @@ if [ $UNINSTALL = 1 ]; then
     fi
 
     if [ $DO_FF = 1 ]; then
-        unlink_tree "$SRC/firefox" "$FF_PROFILE"
-        [ -d "$FF_PROFILE/chrome" ] && find "$FF_PROFILE/chrome" -depth -type d -empty -delete
+        printf '%s\n' "$FF_PROFILES" | while IFS= read -r p; do
+            unlink_tree "$SRC/firefox" "$p"
+            if [ -d "$p/chrome" ]; then
+                find "$p/chrome" -depth -type d -empty -delete
+            fi
+        done
     fi
 
     if [ $DO_EXT = 1 ]; then
@@ -199,10 +218,12 @@ if [ $DO_GTK = 1 ]; then
     done
 fi
 
-# Firefox reads both files at startup
+# The browser reads both files at startup
 if [ $DO_FF = 1 ]; then
-    link_tree "$SRC/firefox" "$FF_PROFILE"
-    echo "firefox: $FF_PROFILE (restart Firefox to apply)"
+    printf '%s\n' "$FF_PROFILES" | while IFS= read -r p; do
+        link_tree "$SRC/firefox" "$p"
+        echo "browser profile: $p (restart the browser to apply)"
+    done
 fi
 
 if [ $DO_EXT = 1 ]; then
