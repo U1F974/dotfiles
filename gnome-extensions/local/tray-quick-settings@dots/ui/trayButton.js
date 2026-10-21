@@ -85,6 +85,10 @@ class TrayButton extends St.Button {
 
     // SNI Scroll: delta > 0 is up/left, as Qt's angleDelta.
     vfunc_scroll_event(event) {
+        // Mutter sends each wheel step twice (smooth + emulated discrete); take the real one.
+        // Stop (not propagate as slider.js does) so no ancestor acts on the twin either.
+        if (event.get_flags() & Clutter.EventFlags.FLAG_POINTER_EMULATED)
+            return Clutter.EVENT_STOP;
         switch (event.get_scroll_direction()) {
         case Clutter.ScrollDirection.UP:
             this._item.scroll(1, 'vertical');

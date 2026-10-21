@@ -83,7 +83,8 @@ export default class TrayExtension extends Extension {
             return;
         }
         this._items.set(id, item);
-        this._row.add(item, new TrayButton(item, {onOpenMenu: b => this._openMenu(b)}));
+        this._row.add(item, new TrayButton(item, {onOpenMenu: b => this._openMenu(b)}),
+            watcher.items);
     }
 
     _removeItem(id) {
