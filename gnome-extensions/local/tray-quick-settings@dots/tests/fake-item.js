@@ -29,8 +29,40 @@ const PROPS_XML = `
   </interface>
 </node>`;
 
+const MENU_IFACE = 'com.canonical.dbusmenu';
+const MENU_PATH = '/MenuBar';
+const MENU_XML = withAbout => `
+<node>
+  <interface name="${MENU_IFACE}">
+    <method name="GetLayout">
+      <arg type="i" direction="in"/><arg type="i" direction="in"/><arg type="as" direction="in"/>
+      <arg type="u" direction="out"/><arg type="(ia{sv}av)" direction="out"/>
+    </method>
+    ${withAbout ? '<method name="AboutToShow"><arg type="i" direction="in"/><arg type="b" direction="out"/></method>' : ''}
+    <method name="Event">
+      <arg type="i" direction="in"/><arg type="s" direction="in"/><arg type="v" direction="in"/><arg type="u" direction="in"/>
+    </method>
+    <signal name="LayoutUpdated"><arg type="u"/><arg type="i"/></signal>
+    <signal name="ItemsPropertiesUpdated"><arg type="a(ia{sv})"/><arg type="a(ias)"/></signal>
+  </interface>
+</node>`;
+const MENU_SIGNALS = {LayoutUpdated: '(ui)', ItemsPropertiesUpdated: '(a(ia{sv})a(ias))'};
+const MENU_PROP_TYPES = {
+    'label': 's', 'type': 's', 'enabled': 'b', 'visible': 'b', 'toggle-type': 's',
+    'toggle-state': 'i', 'children-display': 's', 'icon-name': 's',
+};
+
+// node: {id, props: {label, type, enabled, ...}, children: [node]} -> (ia{sv}av) variant.
+function menuVariant(node) {
+    const props = {};
+    for (const [k, v] of Object.entries(node.props ?? {}))
+        props[k] = new GLib.Variant(MENU_PROP_TYPES[k] ?? 's', v);
+    const children = (node.children ?? []).map(c => new GLib.Variant('v', menuVariant(c)));
+    return new GLib.Variant('(ia{sv}av)', [node.id, props, children]);
+}
+
 class FakeItem {
-    constructor(connection, objectPath, props, silent, registerMode) {
+    constructor(connection, objectPath, props, silent, registerMode, menu, noAboutToShow) {
         this.connection = connection;
         this.uniqueName = connection.get_unique_name();
         this.objectPath = objectPath;
@@ -65,6 +97,24 @@ class FakeItem {
                     invocation.return_value(new GLib.Variant('(a{sv})', [{...this._props}]));
                 }
             }, null, null));
+
+        if (menu) {
+            const menuInfo = Gio.DBusNodeInfo.new_for_xml(MENU_XML(!noAboutToShow)).interfaces[0];
+            this._regIds.push(connection.register_object(MENU_PATH, menuInfo,
+                (conn, sender, path, iface, method, params, invocation) => {
+                    this.calls.push({method, params: params.recursiveUnpack()});
+                    if (this._silent)
+                        return; // never answer
+                    if (method === 'GetLayout') {
+                        invocation.return_value(new GLib.Variant('(u(ia{sv}av))',
+                            [1, menuVariant(menu).deepUnpack()]));
+                    } else if (method === 'AboutToShow') {
+                        invocation.return_value(new GLib.Variant('(b)', [false]));
+                    } else {
+                        invocation.return_value(null);
+                    }
+                }, null, null));
+        }
     }
 
     // name: property name; variant: GLib.Variant of the right type.
@@ -72,7 +122,15 @@ class FakeItem {
         this._props[name] = variant;
     }
 
+    // Item signals, plus dbusmenu signals (LayoutUpdated, ItemsPropertiesUpdated).
+    // For dbusmenu signals params may be a plain array, packed by the signal's signature.
     emit(signal, params = null) {
+        if (signal in MENU_SIGNALS) {
+            if (Array.isArray(params))
+                params = new GLib.Variant(MENU_SIGNALS[signal], params);
+            this.connection.emit_signal(null, MENU_PATH, MENU_IFACE, signal, params);
+            return;
+        }
         this.connection.emit_signal(null, this.objectPath, ITEM_IFACE, signal, params);
     }
 
@@ -104,8 +162,14 @@ export function newConnection() {
         null, null);
 }
 
-export async function makeFakeItem({props = {}, register = 'busName', silent = false, objectPath = '/StatusNotifierItem'} = {}) {
+// menu: optional dbusmenu tree exported at /MenuBar, e.g.
+//   {id: 0, children: [{id: 1, props: {label: 'Open', type: 'standard', enabled: true,
+//     'toggle-type': 'checkmark', 'toggle-state': 1, 'children-display': 'submenu'}, children: []}]}
+// noAboutToShow: leave AboutToShow out of the exported interface.
+// silent: true also makes dbusmenu methods never answer.
+export async function makeFakeItem({props = {}, register = 'busName', silent = false, objectPath = '/StatusNotifierItem',
+    menu = null, noAboutToShow = false} = {}) {
     const connection = newConnection();
-    return new FakeItem(connection, objectPath, props, silent, register);
+    return new FakeItem(connection, objectPath, props, silent, register, menu, noAboutToShow);
 }
 
