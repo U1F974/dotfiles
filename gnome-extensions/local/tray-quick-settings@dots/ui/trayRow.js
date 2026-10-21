@@ -28,11 +28,18 @@ class TrayRow extends St.BoxLayout {
         }, this);
     }
 
-    add(item, button) {
+    // order: ids in registration order; the button goes before the first later one.
+    add(item, button, order = []) {
         const id = itemId(item.busName, item.objectPath);
         this.remove(id);
+        const rank = order.indexOf(id);
+        const next = rank < 0 ? null : this.get_children().find(b =>
+            order.indexOf(itemId(b.item.busName, b.item.objectPath)) > rank);
         this._buttons.set(id, button);
-        this.add_child(button);
+        if (next)
+            this.insert_child_below(button, next);
+        else
+            this.add_child(button);
         item.connectObject('changed', () => this._sync(), button);
         this._sync();
     }

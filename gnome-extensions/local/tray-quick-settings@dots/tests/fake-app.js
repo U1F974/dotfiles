@@ -1,5 +1,6 @@
 // Standalone fake tray app for manual checks in a nested shell.
-//   gjs -m tests/fake-app.js [--attention] [--count N]
+//   gjs -m tests/fake-app.js [--attention] [--count N] [--slow MS]
+// --slow: item 1 answers Properties calls after MS (checks icon order vs registration order).
 // Item 2 (if N >= 2) is Electron-style: PNG in a temp IconThemePath, registered by path.
 // stdin commands: a = toggle attention, p = toggle Passive, i = new Electron icon, q = quit.
 // Registers again whenever org.kde.StatusNotifierWatcher appears; prints calls it receives.
@@ -17,6 +18,8 @@ const s = v => new GLib.Variant('s', v);
 let attention = ARGV.includes('--attention');
 const countArg = ARGV.indexOf('--count');
 const count = countArg >= 0 ? Number(ARGV[countArg + 1]) : 2;
+const slowArg = ARGV.indexOf('--slow');
+const slowMs = slowArg >= 0 ? Number(ARGV[slowArg + 1]) : 0;
 let passive = false;
 
 const MENU = {
@@ -78,7 +81,7 @@ for (let i = 0; i < count; i++) {
         };
     }
     const item = await makeFakeItem({
-        props, menu: MENU,
+        props, menu: MENU, propsDelay: i === 0 ? slowMs : 0,
         register: electron ? 'path' : 'busName',
         objectPath: electron ? '/org/chromium/StatusNotifierItem/1' : '/StatusNotifierItem',
     });
@@ -94,16 +97,24 @@ for (let i = 0; i < count; i++) {
     items.push(item);
 }
 
+// One by one, so the watcher sees them in item order.
+async function registerAll() {
+    for (const item of items) {
+        try {
+            await item.register();
+            print(`registered ${item.name}`);
+        } catch (e) {
+            print(`register ${item.name} failed: ${e.message}`);
+        }
+    }
+}
+
 // Register whenever the watcher appears, as real apps do.
 const watchId = Gio.bus_watch_name_on_connection(items[0].connection,
     'org.kde.StatusNotifierWatcher', Gio.BusNameWatcherFlags.NONE,
     () => {
         print('watcher appeared');
-        for (const item of items) {
-            item.register()
-                .then(() => print(`registered ${item.name}`))
-                .catch(e => print(`register ${item.name} failed: ${e.message}`));
-        }
+        registerAll();
     },
     () => print('watcher vanished'));
 

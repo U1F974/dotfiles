@@ -6,6 +6,9 @@ import St from 'gi://St';
 
 import {argbToRgba, iconFileFor, itemId, pickPixmap} from '../logic.js';
 
+// Items whose broken pixmap was already logged.
+const warned = new WeakSet();
+
 function scaleFactor() {
     return St.ThemeContext.get_for_stage(global.stage).scale_factor;
 }
@@ -51,7 +54,10 @@ export function updateIcon(icon, item, size) {
     try {
         gicon ??= pixmapIcon(item.iconPixmap, pixelSize);
     } catch (e) {
-        console.warn(`tray icon ${itemId(item.busName, item.objectPath)}: ${e.message}`);
+        if (!warned.has(item)) {
+            warned.add(item);
+            console.warn(`tray icon ${itemId(item.busName, item.objectPath)}: ${e.message}`);
+        }
     }
 
     if (gicon)

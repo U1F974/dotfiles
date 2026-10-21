@@ -62,13 +62,14 @@ function menuVariant(node) {
 }
 
 class FakeItem {
-    constructor(connection, objectPath, props, silent, registerMode, menu, noAboutToShow) {
+    constructor(connection, objectPath, props, silent, registerMode, menu, noAboutToShow, propsDelay) {
         this.connection = connection;
         this.uniqueName = connection.get_unique_name();
         this.objectPath = objectPath;
         this.calls = [];
         this._props = {...props};
         this._silent = silent;
+        this._propsDelay = propsDelay;
         this._registerMode = registerMode;
         this._regIds = [];
         this._closed = false;
@@ -85,17 +86,14 @@ class FakeItem {
             (conn, sender, path, iface, method, params, invocation) => {
                 if (this._silent)
                     return; // never answer
-                if (method === 'Get') {
-                    const [, name] = params.deepUnpack();
-                    const v = this._props[name];
-                    if (v === undefined) {
-                        invocation.return_dbus_error('org.freedesktop.DBus.Error.UnknownProperty', name);
-                        return;
-                    }
-                    invocation.return_value(new GLib.Variant('(v)', [v]));
-                } else if (method === 'GetAll') {
-                    invocation.return_value(new GLib.Variant('(a{sv})', [{...this._props}]));
+                if (this._propsDelay > 0) {
+                    GLib.timeout_add(GLib.PRIORITY_DEFAULT, this._propsDelay, () => {
+                        this._answerProps(method, params, invocation);
+                        return GLib.SOURCE_REMOVE;
+                    });
+                    return;
                 }
+                this._answerProps(method, params, invocation);
             }, null, null));
 
         if (menu) {
@@ -114,6 +112,20 @@ class FakeItem {
                         invocation.return_value(null);
                     }
                 }, null, null));
+        }
+    }
+
+    _answerProps(method, params, invocation) {
+        if (method === 'Get') {
+            const [, name] = params.deepUnpack();
+            const v = this._props[name];
+            if (v === undefined) {
+                invocation.return_dbus_error('org.freedesktop.DBus.Error.UnknownProperty', name);
+                return;
+            }
+            invocation.return_value(new GLib.Variant('(v)', [v]));
+        } else if (method === 'GetAll') {
+            invocation.return_value(new GLib.Variant('(a{sv})', [{...this._props}]));
         }
     }
 
@@ -167,9 +179,10 @@ export function newConnection() {
 //     'toggle-type': 'checkmark', 'toggle-state': 1, 'children-display': 'submenu'}, children: []}]}
 // noAboutToShow: leave AboutToShow out of the exported interface.
 // silent: true also makes dbusmenu methods never answer.
+// propsDelay: answer Properties Get/GetAll after this many ms.
 export async function makeFakeItem({props = {}, register = 'busName', silent = false, objectPath = '/StatusNotifierItem',
-    menu = null, noAboutToShow = false} = {}) {
+    menu = null, noAboutToShow = false, propsDelay = 0} = {}) {
     const connection = newConnection();
-    return new FakeItem(connection, objectPath, props, silent, register, menu, noAboutToShow);
+    return new FakeItem(connection, objectPath, props, silent, register, menu, noAboutToShow, propsDelay);
 }
 
