@@ -1,0 +1,23 @@
+/* Tray row at the bottom of Quick Settings. */
+.tray-qs-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 8px;
+  spacing: 4px;
+}
+
+.tray-qs-button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 3px;
+  background-color: transparent;
+}
+
+.tray-qs-button:hover,
+.tray-qs-button:focus {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.tray-qs-button:active {
+  background-color: rgba(255, 255, 255, 0.16);
+}
