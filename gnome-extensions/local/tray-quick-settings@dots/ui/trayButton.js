@@ -71,10 +71,7 @@ class TrayButton extends St.Button {
         if (button === Clutter.BUTTON_MIDDLE) {
             item.secondaryActivate(x, y);
         } else if (button === Clutter.BUTTON_SECONDARY) {
-            if (item.menuPath)
-                this._onOpenMenu(this);
-            else
-                item.contextMenu(x, y);
+            this._onOpenMenu(this);
         } else if (item.itemIsMenu) {
             this._onOpenMenu(this);
         } else {

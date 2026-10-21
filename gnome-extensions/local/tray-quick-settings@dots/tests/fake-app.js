@@ -1,8 +1,14 @@
 // Standalone fake tray app for manual checks in a nested shell.
 //   gjs -m tests/fake-app.js [--attention] [--count N] [--slow MS]
+//       [--no-menu] [--broken-menu] [--empty-menu]
 // --slow: item 1 answers Properties calls after MS (checks icon order vs registration order).
+// --no-menu: item 1 has no Menu property; --broken-menu: its Menu path has no dbusmenu;
+// --empty-menu: its dbusmenu has no entries.
+// Menu: separator, disabled item, checkmark and radio items, a submenu, a hidden item.
+// Clicking a checkmark/radio flips it (LayoutUpdated); "Quit" closes that item's connection.
 // Item 2 (if N >= 2) is Electron-style: PNG in a temp IconThemePath, registered by path.
-// stdin commands: a = toggle attention, p = toggle Passive, i = new Electron icon, q = quit.
+// stdin commands: a = toggle attention, p = toggle Passive, i = new Electron icon,
+// m = change the menus (relabel + LayoutUpdated), q = quit.
 // Registers again whenever org.kde.StatusNotifierWatcher appears; prints calls it receives.
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
@@ -20,15 +26,42 @@ const countArg = ARGV.indexOf('--count');
 const count = countArg >= 0 ? Number(ARGV[countArg + 1]) : 2;
 const slowArg = ARGV.indexOf('--slow');
 const slowMs = slowArg >= 0 ? Number(ARGV[slowArg + 1]) : 0;
+const noMenu = ARGV.includes('--no-menu');
+const brokenMenu = ARGV.includes('--broken-menu');
+const emptyMenu = ARGV.includes('--empty-menu');
 let passive = false;
+let menuSerial = 0;
 
-const MENU = {
-    id: 0, children: [
-        {id: 1, props: {label: '_Open', type: 'standard', enabled: true}, children: []},
-        {id: 2, props: {type: 'separator'}, children: []},
-        {id: 3, props: {label: 'Quit', type: 'standard', enabled: true}, children: []},
-    ],
-};
+const QUIT_ID = 3;
+const mi = (id, props, children = []) => ({id, props, children});
+const newMenu = () => mi(0, {}, [
+    mi(1, {label: '_Open', type: 'standard', enabled: true}),
+    mi(2, {type: 'separator'}),
+    mi(4, {label: 'Disabled item', enabled: false}),
+    mi(5, {label: 'Notifications', 'toggle-type': 'checkmark', 'toggle-state': 1}),
+    mi(6, {label: 'Do not disturb', 'toggle-type': 'checkmark', 'toggle-state': 0}),
+    mi(7, {type: 'separator'}),
+    mi(8, {label: 'Online', 'toggle-type': 'radio', 'toggle-state': 1}),
+    mi(9, {label: 'Away', 'toggle-type': 'radio', 'toggle-state': 0}),
+    mi(10, {label: 'More', 'children-display': 'submenu'}, [
+        mi(11, {label: 'About'}),
+        mi(12, {label: 'Help', enabled: false}),
+    ]),
+    mi(13, {label: 'Hidden item', visible: false}),
+    mi(14, {type: 'separator'}),
+    mi(QUIT_ID, {label: 'Quit', type: 'standard', enabled: true}),
+]);
+
+function findNode(node, id) {
+    if (node.id === id)
+        return node;
+    for (const c of node.children) {
+        const found = findNode(c, id);
+        if (found)
+            return found;
+    }
+    return null;
+}
 
 function tooltip(title) {
     return new GLib.Variant('(sa(iiay)ss)', ['', [], title, '']);
@@ -64,6 +97,7 @@ const items = [];
 for (let i = 0; i < count; i++) {
     const electron = i === 1;
     let props;
+    const menu = i === 0 && emptyMenu ? mi(0, {}) : newMenu();
     if (electron) {
         const png = newPng();
         props = {
@@ -79,18 +113,29 @@ for (let i = 0; i < count; i++) {
             ToolTip: tooltip(`Fake Telegram ${i}`),
             Menu: new GLib.Variant('o', '/MenuBar'), ItemIsMenu: new GLib.Variant('b', false),
         };
+        if (i === 0 && noMenu)
+            delete props.Menu;
+        else if (i === 0 && brokenMenu)
+            props.Menu = new GLib.Variant('o', '/NoSuchMenu');
     }
     const item = await makeFakeItem({
-        props, menu: MENU, propsDelay: i === 0 ? slowMs : 0,
+        props, menu, propsDelay: i === 0 ? slowMs : 0,
         register: electron ? 'path' : 'busName',
         objectPath: electron ? '/org/chromium/StatusNotifierItem/1' : '/StatusNotifierItem',
     });
     item.electron = electron;
     item.name = electron ? 'fake-electron' : `fake-telegram-${i}`;
+    item.menu = menu;
     const calls = item.calls;
     calls.push = (...c) => {
-        for (const {method, params} of c)
+        for (const {method, params} of c) {
             print(`call ${item.name} ${method} ${JSON.stringify(params)}`);
+            if (method === 'Event' && params[1] === 'clicked')
+                GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+                    onMenuClicked(item, params[0]);
+                    return GLib.SOURCE_REMOVE;
+                });
+        }
         return Array.prototype.push.apply(calls, c);
     };
     print(`item ${item.name} ${item.uniqueName}${item.objectPath}`);
@@ -117,6 +162,29 @@ const watchId = Gio.bus_watch_name_on_connection(items[0].connection,
         registerAll();
     },
     () => print('watcher vanished'));
+
+function layoutUpdated(it) {
+    it.emit('LayoutUpdated', [++menuSerial, 0]);
+}
+
+function onMenuClicked(it, id) {
+    if (id === QUIT_ID) {
+        print(`quit ${it.name}`);
+        it.close();
+        return;
+    }
+    const node = findNode(it.menu, id);
+    const p = node?.props ?? {};
+    if (p['toggle-type'] === 'checkmark') {
+        p['toggle-state'] = p['toggle-state'] === 1 ? 0 : 1;
+    } else if (p['toggle-type'] === 'radio') {
+        for (const r of it.menu.children.filter(c => c.props['toggle-type'] === 'radio'))
+            r.props['toggle-state'] = r === node ? 1 : 0;
+    } else {
+        return;
+    }
+    layoutUpdated(it);
+}
 
 function updateStatus() {
     for (const item of items) {
@@ -165,6 +233,17 @@ function readLine() {
                 item.emit('NewIcon');
             }
             print(`icon ${png.dir}/${png.name}.png`);
+        } else if (cmd === 'm') {
+            for (const it of items) {
+                const open = findNode(it.menu, 1);
+                if (!open)
+                    continue; // --empty-menu
+                open.props.label = `_Open ${menuSerial + 1}`;
+                const dnd = findNode(it.menu, 6).props;
+                dnd['toggle-state'] = dnd['toggle-state'] === 1 ? 0 : 1;
+                layoutUpdated(it);
+            }
+            print(`menu ${menuSerial}`);
         }
         readLine();
     });

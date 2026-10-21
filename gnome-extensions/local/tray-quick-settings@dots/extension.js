@@ -1,11 +1,13 @@
 // Tray (StatusNotifierItem host) with icons in a row at the bottom of Quick Settings.
 import Gio from 'gi://Gio';
+import St from 'gi://St';
 
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {Watcher} from './sni/watcher.js';
 import {TrayItem} from './sni/item.js';
+import {AppMenu} from './ui/appMenu.js';
 import {TrayButton} from './ui/trayButton.js';
 import {TrayRow} from './ui/trayRow.js';
 
@@ -13,6 +15,7 @@ export default class TrayExtension extends Extension {
     enable() {
         this._items = new Map(); // id -> TrayItem
         this._row = null;
+        this._appMenu = null; // the one open app menu
 
         this._watcher = new Watcher();
         this._watcherIds = [
@@ -36,6 +39,7 @@ export default class TrayExtension extends Extension {
         this._watcher.stop();
         this._watcher = null;
 
+        this._closeAppMenu();
         this._dropAll();
         this._items = null;
     }
@@ -93,10 +97,34 @@ export default class TrayExtension extends Extension {
         this._row?.remove(id);
     }
 
-    // Placeholder until the DBusMenu popup exists: let the app show its own menu.
-    _openMenu(button) {
+    async _openMenu(button) {
+        this._closeAppMenu();
+        const item = button.item;
         const [x, y] = button.stagePoint();
-        button.item.contextMenu(x, y);
+        if (item.menuPath) {
+            const menu = new AppMenu(button, item, {
+                closeParent: () => Main.panel.closeQuickSettings(),
+                side: St.Side.TOP,
+            });
+            this._appMenu = menu;
+            try {
+                await menu.open();
+                return;
+            } catch (e) {
+                if (this._appMenu !== menu)
+                    return; // replaced, closed or disabled meanwhile
+                this._appMenu = null;
+            }
+        }
+        // No usable DBusMenu: the app draws its own popup, which the Quick Settings grab
+        // would block.
+        Main.panel.closeQuickSettings();
+        item.contextMenu(x, y);
+    }
+
+    _closeAppMenu() {
+        this._appMenu?.destroy();
+        this._appMenu = null;
     }
 
     _syncVisible() {
