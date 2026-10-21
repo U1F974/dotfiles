@@ -1,0 +1,7 @@
+{
+  "uuid": "tray-quick-settings@dots",
+  "name": "Tray in Quick Settings",
+  "description": "Tray icons (StatusNotifierItem) in a row at the bottom of Quick Settings",
+  "shell-version": ["48"],
+  "session-modes": ["user", "unlock-dialog"]
+}
