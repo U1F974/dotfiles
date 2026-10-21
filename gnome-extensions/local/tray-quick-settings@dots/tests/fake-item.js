@@ -95,12 +95,17 @@ class FakeItem {
     }
 }
 
-export async function makeFakeItem({props = {}, register = 'busName', silent = false, objectPath = '/StatusNotifierItem'} = {}) {
-    const connection = Gio.DBusConnection.new_for_address_sync(
+// A fresh private connection to the test session bus.
+export function newConnection() {
+    return Gio.DBusConnection.new_for_address_sync(
         GLib.getenv('DBUS_SESSION_BUS_ADDRESS'),
         Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT |
         Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION,
         null, null);
+}
+
+export async function makeFakeItem({props = {}, register = 'busName', silent = false, objectPath = '/StatusNotifierItem'} = {}) {
+    const connection = newConnection();
     return new FakeItem(connection, objectPath, props, silent, register);
 }
 
