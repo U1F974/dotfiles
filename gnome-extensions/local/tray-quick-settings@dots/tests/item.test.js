@@ -100,6 +100,25 @@ test('NewIconThemePath (Vesktop) refreshes path and name', async () => {
     }
 });
 
+test('signal during the first load is not lost', async () => {
+    const f = await makeFakeItem({props: TELEGRAM(), propsDelay: 300});
+    const conn = newConnection();
+    let it = null;
+    try {
+        const creating = TrayItem.create(conn, f.uniqueName, f.objectPath);
+        await sleep(100); // GetAll is in flight
+        f.emit('NewIcon');
+        it = await creating;
+        let changed = 0;
+        it.connect('changed', () => changed++);
+        await waitFor(() => changed > 0);
+    } finally {
+        it?.destroy();
+        conn.close_sync(null);
+        f.close();
+    }
+});
+
 test('burst of signals is coalesced', async () => {
     const {f, t, cleanup} = await setup(TELEGRAM());
     try {

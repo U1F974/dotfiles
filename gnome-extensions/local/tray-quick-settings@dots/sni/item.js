@@ -23,15 +23,22 @@ export const TrayItem = GObject.registerClass({
     },
 }, class TrayItem extends GObject.Object {
     // Loads all properties; rejects on error or after 2000 ms of silence.
+    // Subscribes first: the match rule reaches the bus before GetAll on the same connection,
+    // so no signal sent after GetAll is lost. Signals during the load only set _pending.
     static async create(connection, busName, objectPath) {
         const item = new TrayItem(connection, busName, objectPath);
+        item._subscribe();
+        item._refreshing = true;
         try {
             await item._load();
         } catch (e) {
             item.destroy();
             throw e;
+        } finally {
+            item._refreshing = false;
         }
-        item._subscribe();
+        if (item._pending)
+            item._refresh();
         return item;
     }
 
