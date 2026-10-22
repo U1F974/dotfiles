@@ -129,6 +129,11 @@ class FakeItem {
         }
     }
 
+    // Stop (or start) answering calls that come after this.
+    setSilent(silent) {
+        this._silent = silent;
+    }
+
     // name: property name; variant: GLib.Variant of the right type.
     setProp(name, variant) {
         this._props[name] = variant;

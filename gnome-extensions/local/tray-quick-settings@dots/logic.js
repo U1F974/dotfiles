@@ -57,3 +57,21 @@ export function iconFileFor(themePath, iconName) {
     }
     return null;
 }
+
+// Runs attempt() up to 1 + retries times, awaiting wait() between tries. Resolves null as soon
+// as keepGoing() is false after a failed try or a wait; otherwise rejects with the last error.
+export async function retry(attempt, {retries, wait, keepGoing}) {
+    for (let i = 0; ; i++) {
+        try {
+            return await attempt();
+        } catch (e) {
+            if (!keepGoing())
+                return null;
+            if (i >= retries)
+                throw e;
+        }
+        await wait();
+        if (!keepGoing())
+            return null;
+    }
+}
