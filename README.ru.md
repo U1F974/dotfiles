@@ -93,6 +93,7 @@ home/                                     повторяет ~, install.sh ст�
 tools/gen-radius.py                       генератор radius.css
 gnome-extensions/                         список расширений, настройки (dconf),
                                           скрипты
+  local/                                    расширения, которые лежат в этом репозитории
 extras/user-theme-fix/                    исправление утечки в User Themes (GNOME 48)
 firefox/                                  повторяет профиль Firefox/LibreWolf:
   chrome/userChrome.css                     кнопки окна
@@ -170,7 +171,8 @@ tools/gen-radius.py
   После правок перезапусти браузер.
 - Telegram с системной рамкой на Wayland получает ее от Qt-плагина
   `libadwaita.so`, который сам рисует круглые кнопки и CSS не читает;
-  оставлено как есть. VS Code рисует заголовок сам, его это не касается.
+  оставлено как есть. VS Code рисует заголовок сам, его это не касается. К
+  значкам трея в Quick Settings (см. ниже) это отношения не имеет.
 
 ## Расширения GNOME Shell
 
@@ -191,15 +193,30 @@ tools/gen-radius.py
 | [Removable Drive Menu](https://gitlab.gnome.org/GNOME/gnome-shell-extensions) | подключенные диски на панели | по умолчанию |
 | [Places Status Indicator](https://gitlab.gnome.org/GNOME/gnome-shell-extensions) | меню "Места" на панели | по умолчанию |
 | [User Themes](https://gitlab.gnome.org/GNOME/gnome-shell-extensions) | загружает тему MyShell | тема `MyShell` |
+| Tray Quick Settings (`gnome-extensions/local`) | значки трея приложений в Quick Settings | свое расширение, настроек нет |
 
-Последние четыре идут в пакете дистрибутива `gnome-shell-extensions`.
+Четыре расширения перед последним идут в пакете дистрибутива
+`gnome-shell-extensions`. Tray Quick Settings нет на extensions.gnome.org:
+исходники лежат в `gnome-extensions/local/tray-quick-settings@dots`, а
+`install.sh` делает на них симлинк в `~/.local/share/gnome-shell/extensions`.
 
-- `gnome-extensions/extensions.tsv`: uuid, источник (`ego`, `package`, `app`)
-  и путь в dconf для каждого расширения.
+**Tray Quick Settings** (`tray-quick-settings@dots`) показывает значки трея
+приложений отдельным рядом внизу Quick Settings. Левый клик выполняет действие
+приложения, средний клик и колесо передаются приложению, правый клик
+открывает меню приложения поверх Quick Settings. Приложение, которому нужно
+внимание, показывает свой значок на панели слева от Quick Settings; заглушенные
+чаты Telegram и приложения, которые показывают непрочитанное только в
+картинке (Vesktop), не показывают. Расширение само держит трей, поэтому не
+работает вместе с AppIndicator (имя трея на шине занимает тот, кто запустился
+первым). Загружается после следующего входа в систему.
+
+- `gnome-extensions/extensions.tsv`: uuid, источник (`ego`, `package`, `app`,
+  `local`) и путь в dconf для каждого расширения.
 - `gnome-extensions/settings/*.ini`: `dconf dump` измененных настроек.
 - `gnome-extensions/install.sh`: скачивает недостающие расширения `ego` под
-  текущую версию GNOME, загружает настройки и добавляет все расширения из
-  списка в `enabled-extensions`.
+  текущую версию GNOME, делает симлинки на расширения `local` из репозитория
+  (существующая копия сохраняется как `.bak`), загружает настройки и
+  добавляет все расширения из списка в `enabled-extensions`.
 - `gnome-extensions/dump.sh`: выгружает текущие настройки обратно в
   репозиторий; запускай после изменения настроек расширений.
 

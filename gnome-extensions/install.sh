@@ -6,6 +6,10 @@
 #   and installed with `gnome-extensions install`, unless already installed.
 # - package: come with the distro package gnome-shell-extensions.
 # - app: installed by their application (Gradia), only enabled here.
+# - local: live in this repo under local/<uuid>, linked into
+#   ~/.local/share/gnome-shell/extensions (an existing copy is kept as .bak).
+#
+# EXTENSIONS_TSV overrides the list file (used to test with a short list).
 #
 # Newly installed extensions load after the next login (Wayland cannot
 # restart the shell); they are added to enabled-extensions right away.
@@ -13,6 +17,7 @@
 set -eu
 
 DIR=$(cd "$(dirname "$0")" && pwd)
+LIST=${EXTENSIONS_TSV:-$DIR/extensions.tsv}
 EGO=https://extensions.gnome.org
 SHELL_VERSION=$(gnome-shell --version | sed 's/[^0-9]*\([0-9]*\).*/\1/')
 TMP=$(mktemp -d)
@@ -23,8 +28,20 @@ installed() {
     [ -d "/usr/share/gnome-shell/extensions/$1" ]
 }
 
-grep -v '^#' "$DIR/extensions.tsv" | while IFS='	' read -r uuid source path; do
-    if installed "$uuid"; then
+grep -v '^#' "$LIST" | while IFS='	' read -r uuid source path; do
+    if [ "$source" = local ]; then
+        target="$HOME/.local/share/gnome-shell/extensions/$uuid"
+        if [ -L "$target" ] && [ "$(readlink "$target")" = "$DIR/local/$uuid" ]; then
+            echo "ok        $uuid"
+        else
+            mkdir -p "$(dirname "$target")"
+            if [ -e "$target" ] || [ -L "$target" ]; then
+                mv "$target" "$target.$(date +%Y%m%d%H%M%S).bak"
+            fi
+            ln -s "$DIR/local/$uuid" "$target"
+            echo "linked    $uuid"
+        fi
+    elif installed "$uuid"; then
         echo "ok        $uuid"
     elif [ "$source" = ego ]; then
         url=$(curl -fsS "$EGO/extension-info/?uuid=$uuid&shell_version=$SHELL_VERSION" |
@@ -65,7 +82,7 @@ put_list() {
 # disabled-extensions. `gnome-extensions enable` cannot do this: it only knows
 # extensions the running shell has loaded, and new ones load after the next
 # login.
-uuids=$(grep -v '^#' "$DIR/extensions.tsv" | cut -f1)
+uuids=$(grep -v '^#' "$LIST" | cut -f1)
 { get_list enabled-extensions; printf '%s\n' "$uuids"; } |
     awk '!seen[$0]++' | put_list enabled-extensions
 get_list disabled-extensions | grep -vxF "$uuids" | put_list disabled-extensions
