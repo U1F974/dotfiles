@@ -1,11 +1,13 @@
 // Tray (StatusNotifierItem host) with icons in a row at the bottom of Quick Settings;
 // apps that want attention also get an icon in the panel.
 import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
 import St from 'gi://St';
 
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
+import {retry} from './logic.js';
 import {Watcher} from './sni/watcher.js';
 import {TrayItem} from './sni/item.js';
 import {AppMenu} from './ui/appMenu.js';
@@ -13,9 +15,15 @@ import {AttentionIndicator} from './ui/attention.js';
 import {TrayButton} from './ui/trayButton.js';
 import {TrayRow} from './ui/trayRow.js';
 
+// A silent or not yet ready app gets this many more tries, this far apart.
+const LOAD_RETRIES = 2;
+const LOAD_RETRY_MS = 2000;
+
 export default class TrayExtension extends Extension {
     enable() {
         this._items = new Map(); // id -> TrayItem
+        this._loading = new Set(); // ids being loaded
+        this._timeouts = new Set(); // GLib sources of retry waits
         this._row = null;
         this._attention = null; // panel item
         this._appMenu = null; // the one open app menu
@@ -41,6 +49,10 @@ export default class TrayExtension extends Extension {
         this._watcherIds = [];
         this._watcher.stop();
         this._watcher = null;
+        for (const id of this._timeouts)
+            GLib.source_remove(id);
+        this._timeouts = null;
+        this._loading = null;
 
         this._closeAppMenu();
         this._dropAll();
@@ -81,15 +93,30 @@ export default class TrayExtension extends Extension {
         this._items.clear();
     }
 
+    // Also called again for an id the app registers again: a no-op if it is loaded or loading.
     async _addItem(id, busName, objectPath) {
         const watcher = this._watcher;
+        const loading = this._loading;
+        if (this._items.has(id) || loading.has(id))
+            return;
+        loading.add(id);
         let item;
         try {
-            item = await TrayItem.create(Gio.DBus.session, busName, objectPath);
+            item = await retry(() => TrayItem.create(Gio.DBus.session, busName, objectPath), {
+                retries: LOAD_RETRIES,
+                wait: () => this._wait(LOAD_RETRY_MS),
+                // Stop once disabled, unregistered, loaded elsewhere or the name is lost.
+                keepGoing: () => this._watcher === watcher && watcher.items.includes(id) &&
+                    !this._items.has(id) && this._row !== null,
+            });
         } catch (e) {
             console.warn(`tray item ${id}: ${e.message}`);
             return;
+        } finally {
+            loading.delete(id);
         }
+        if (!item)
+            return;
         // Disabled, removed or name lost while loading.
         if (this._watcher !== watcher || !watcher.items.includes(id) ||
             this._items.has(id) || !this._row) {
@@ -101,6 +128,17 @@ export default class TrayExtension extends Extension {
             watcher.items);
         item.connectObject('changed', () => this._syncAttention(), this);
         this._syncAttention();
+    }
+
+    _wait(ms) {
+        return new Promise(resolve => {
+            const sourceId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, ms, () => {
+                this._timeouts.delete(sourceId);
+                resolve();
+                return GLib.SOURCE_REMOVE;
+            });
+            this._timeouts.add(sourceId);
+        });
     }
 
     _removeItem(id) {

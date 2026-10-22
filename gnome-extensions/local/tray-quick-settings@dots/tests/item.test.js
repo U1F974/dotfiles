@@ -3,6 +3,7 @@ import GLib from 'gi://GLib';
 import {test, assert, assertEqual, assertRejects, waitFor} from './harness.js';
 import {makeFakeItem, newConnection} from './fake-item.js';
 import {TrayItem} from '../sni/item.js';
+import {retry} from '../logic.js';
 
 const s = v => new GLib.Variant('s', v);
 
@@ -172,6 +173,31 @@ test('create rejects on silent item', async () => {
     try {
         await assertRejects(TrayItem.create(conn, f.uniqueName, f.objectPath));
     } finally {
+        conn.close_sync(null);
+        f.close();
+    }
+});
+
+test('retry loads an item that is silent at first', async () => {
+    const f = await makeFakeItem({props: TELEGRAM(), silent: true});
+    const conn = newConnection();
+    let it = null;
+    let tries = 0;
+    try {
+        it = await retry(() => {
+            tries++;
+            return TrayItem.create(conn, f.uniqueName, f.objectPath);
+        }, {
+            retries: 2,
+            wait: async () => {
+                await sleep(50);
+                f.setSilent(false);
+            },
+            keepGoing: () => true,
+        });
+        assertEqual([tries, it.id], [2, 'TelegramDesktop']);
+    } finally {
+        it?.destroy();
         conn.close_sync(null);
         f.close();
     }

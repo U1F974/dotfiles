@@ -123,8 +123,11 @@ export const Watcher = GObject.registerClass({
 
     _addItem(busName, objectPath) {
         const id = itemId(busName, objectPath);
-        if (this._items.some(i => i.id === id))
+        // Registered again: no new entry, but a host whose first load failed may retry.
+        if (this._items.some(i => i.id === id)) {
+            this.emit('item-added', id, busName, objectPath);
             return;
+        }
         this._items.push({id, busName, objectPath});
 
         if (!this._watches.has(busName)) {

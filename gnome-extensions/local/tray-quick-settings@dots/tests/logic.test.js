@@ -2,7 +2,7 @@ import GLib from 'gi://GLib';
 
 import {test, assert, assertEqual} from './harness.js';
 import {
-    parseService, itemId, isAttention, pickPixmap, argbToRgba, stripMnemonic, iconFileFor,
+    parseService, itemId, isAttention, pickPixmap, argbToRgba, stripMnemonic, iconFileFor, retry,
 } from '../logic.js';
 
 const a = new Uint8Array([1]);
@@ -37,3 +37,26 @@ test('iconFileFor: png in theme path', () =>
 test('iconFileFor: missing file', () => assertEqual(iconFileFor(dir, 'nope'), null));
 test('iconFileFor: deleted dir', () => assertEqual(iconFileFor('/tmp/does-not-exist-xyz', 'a'), null));
 test('iconFileFor: empty path', () => assertEqual(iconFileFor('', 'a'), null));
+
+const failing = calls => () => {
+    calls.n++;
+    return Promise.reject(new Error(`fail ${calls.n}`));
+};
+
+test('retry: rejects with the last error after the retries', async () => {
+    const calls = {n: 0};
+    let error = null;
+    try {
+        await retry(failing(calls), {retries: 2, wait: async () => {}, keepGoing: () => true});
+    } catch (e) {
+        error = e;
+    }
+    assertEqual([calls.n, error?.message], [3, 'fail 3']);
+});
+
+test('retry: null when keepGoing turns false', async () => {
+    const calls = {n: 0};
+    const result = await retry(failing(calls),
+        {retries: 2, wait: async () => {}, keepGoing: () => calls.n < 2});
+    assertEqual([calls.n, result], [2, null]);
+});

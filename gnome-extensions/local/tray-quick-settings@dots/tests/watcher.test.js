@@ -58,7 +58,8 @@ test('registers by object path (Electron)', async () => {
     }
 });
 
-test('duplicate registration is ignored', async () => {
+// A host that failed to load the item gets another chance; one entry in items.
+test('duplicate registration keeps one item, re-emits item-added', async () => {
     const w = new Watcher();
     const t = track(w);
     w.start();
@@ -67,14 +68,14 @@ test('duplicate registration is ignored', async () => {
     try {
         await f.register();
         await f.register();
-        await waitFor(() => t.added.length >= 1);
-        // Let a possible second emission arrive.
+        await waitFor(() => t.added.length >= 2);
+        // Let a possible extra emission arrive.
         await new Promise(r => GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
             r();
             return GLib.SOURCE_REMOVE;
         }));
-        assertEqual(t.added.length, 1);
-        assertEqual(w.items.length, 1);
+        assertEqual(t.added, [t.added[0], t.added[0]]);
+        assertEqual(w.items, [t.added[0]]);
     } finally {
         f.close();
         w.stop();
