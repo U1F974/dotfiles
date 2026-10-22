@@ -12,6 +12,7 @@ import * as BoxPointer from 'resource:///org/gnome/shell/ui/boxpointer.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
+import {itemId} from '../logic.js';
 import {DBusMenuClient} from '../sni/dbusmenu.js';
 
 function ornamentFor(node) {
@@ -55,14 +56,17 @@ export class AppMenu {
     }
 
     // Shows the menu. Rejects if the app gives no layout or an empty one (caller falls back
-    // to ContextMenu).
+    // to ContextMenu). A failure to build the menu is logged and resolves: it is a bug here,
+    // not a missing menu.
     // Resolves without showing if the menu was closed or Quick Settings went away meanwhile.
     async open() {
         const {busName, menuPath} = this._item;
         this._client = new DBusMenuClient(Gio.DBus.session, busName, menuPath);
         let root;
         try {
-            await this._client.aboutToShow(0);
+            // Not awaited: a silent AboutToShow must not hold the menu for 2 s. Calls on one
+            // connection arrive in order, so the app still sees it before GetLayout.
+            this._client.aboutToShow(0);
             root = await this._client.getLayout();
         } catch (e) {
             const gone = this._gone();
@@ -92,7 +96,13 @@ export class AppMenu {
             // End of the fade-out after close.
             'menu-closed', () => this.destroy(), this);
 
-        this._build(root);
+        try {
+            this._build(root);
+        } catch (e) {
+            console.error(`tray menu ${itemId(busName, this._item.objectPath)}: ${e.message}`);
+            this.destroy();
+            return;
+        }
         this._menu.open(BoxPointer.PopupAnimation.FULL);
         if (!this._menu.isOpen) {
             this.destroy();
