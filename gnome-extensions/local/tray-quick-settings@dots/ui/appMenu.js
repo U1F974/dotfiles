@@ -31,7 +31,8 @@ function iconFor(node) {
 }
 
 export class AppMenu {
-    // closeParent: closes Quick Settings. side: St.Side of the arrow (flips if no room).
+    // closeParent: closes the parent menu (Quick Settings) after an entry is chosen.
+    // side: St.Side of the arrow (flips if no room).
     constructor(button, item, {closeParent, side}) {
         this._button = button;
         this._item = item;
