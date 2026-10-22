@@ -92,6 +92,7 @@ home/                                     mirrors ~, symlinked by install.sh
 tools/gen-radius.py                       generator for radius.css
 gnome-extensions/                         extension list, settings (dconf),
                                           install/dump scripts
+  local/                                    extensions that live in this repo
 extras/user-theme-fix/                    fix for a leak in User Themes (GNOME 48)
 firefox/                                  mirrors a Firefox/LibreWolf profile:
   chrome/userChrome.css                     window buttons
@@ -164,7 +165,8 @@ tools/gen-radius.py
   set in `firefox/user.js`. Restart the browser after changes.
 - Telegram with the system window frame on Wayland gets it from the Qt
   plugin `libadwaita.so`, which draws its own round buttons and reads no CSS;
-  left as is. VS Code draws its own titlebar and is not affected.
+  left as is. VS Code draws its own titlebar and is not affected. This has
+  nothing to do with the tray icons in Quick Settings (see below).
 
 ## GNOME Shell extensions
 
@@ -185,15 +187,29 @@ tools/gen-radius.py
 | [Removable Drive Menu](https://gitlab.gnome.org/GNOME/gnome-shell-extensions) | mounted drives in the panel | defaults |
 | [Places Status Indicator](https://gitlab.gnome.org/GNOME/gnome-shell-extensions) | Places menu in the panel | defaults |
 | [User Themes](https://gitlab.gnome.org/GNOME/gnome-shell-extensions) | loads the MyShell theme | theme name `MyShell` |
+| Tray Quick Settings (`gnome-extensions/local`) | app tray icons in Quick Settings | own extension, no settings |
 
-The last four come with the distro package `gnome-shell-extensions`.
+The four before the last come with the distro package
+`gnome-shell-extensions`. Tray Quick Settings is not on extensions.gnome.org:
+its source is in `gnome-extensions/local/tray-quick-settings@dots` and
+`install.sh` symlinks it into `~/.local/share/gnome-shell/extensions`.
 
-- `gnome-extensions/extensions.tsv`: uuid, source (`ego`, `package`, `app`)
-  and dconf path of each extension.
+**Tray Quick Settings** (`tray-quick-settings@dots`) puts the tray icons of
+apps in a row at the bottom of Quick Settings. Left click runs the app's
+action, middle click and the wheel go to the app, right click opens the app's
+menu over Quick Settings. An app that wants attention shows its icon in the
+panel just left of Quick Settings; muted Telegram chats and apps that show
+unread only in the picture (Vesktop) do not. The extension hosts the tray
+itself, so it cannot run together with AppIndicator (whoever starts first
+takes the tray name on the bus). It loads after the next login.
+
+- `gnome-extensions/extensions.tsv`: uuid, source (`ego`, `package`, `app`,
+  `local`) and dconf path of each extension.
 - `gnome-extensions/settings/*.ini`: `dconf dump` of changed settings.
 - `gnome-extensions/install.sh`: downloads missing `ego` extensions for the
-  running GNOME version, loads the settings and adds all listed extensions to
-  `enabled-extensions`.
+  running GNOME version, links `local` extensions from the repo (an existing
+  copy is kept as `.bak`), loads the settings and adds all listed extensions
+  to `enabled-extensions`.
 - `gnome-extensions/dump.sh`: exports the current settings back into the
   repo; run it after changing extension settings.
 
