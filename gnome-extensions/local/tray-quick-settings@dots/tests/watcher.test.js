@@ -82,6 +82,32 @@ test('duplicate registration keeps one item, re-emits item-added', async () => {
     }
 });
 
+test('invalid registration is rejected with InvalidArgs', async () => {
+    const w = new Watcher();
+    const t = track(w);
+    w.start();
+    await waitFor(() => t.acquired === 1);
+    const conn = newConnection();
+    try {
+        for (const service of ['', 'not a name', '/bad path', '/trailing/']) {
+            let error = null;
+            try {
+                await conn.call(WATCHER_NAME, '/StatusNotifierWatcher', WATCHER_NAME,
+                    'RegisterStatusNotifierItem', new GLib.Variant('(s)', [service]),
+                    null, Gio.DBusCallFlags.NONE, 2000, null);
+            } catch (e) {
+                error = e;
+            }
+            assertEqual(error && Gio.DBusError.get_remote_error(error),
+                'org.freedesktop.DBus.Error.InvalidArgs', `service '${service}'`);
+        }
+        assertEqual([t.added.length, w.items.length], [0, 0]);
+    } finally {
+        conn.close_sync(null);
+        w.stop();
+    }
+});
+
 test('item removed when owner vanishes', async () => {
     const w = new Watcher();
     const t = track(w);
