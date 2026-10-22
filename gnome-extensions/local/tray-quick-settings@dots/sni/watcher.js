@@ -101,6 +101,11 @@ export const Watcher = GObject.registerClass({
     RegisterStatusNotifierItemAsync(params, invocation) {
         const [service] = params;
         const {busName, objectPath} = parseService(service, invocation.get_sender());
+        if (!Gio.dbus_is_name(busName) || !GLib.Variant.is_object_path(objectPath)) {
+            invocation.return_dbus_error('org.freedesktop.DBus.Error.InvalidArgs',
+                `invalid service '${service}'`);
+            return;
+        }
         this._addItem(busName, objectPath);
         invocation.return_value(null);
     }
