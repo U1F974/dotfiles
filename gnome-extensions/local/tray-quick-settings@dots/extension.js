@@ -1,4 +1,5 @@
-// Tray (StatusNotifierItem host) with icons in a row at the bottom of Quick Settings.
+// Tray (StatusNotifierItem host) with icons in a row at the bottom of Quick Settings;
+// apps that want attention also get an icon in the panel.
 import Gio from 'gi://Gio';
 import St from 'gi://St';
 
@@ -8,6 +9,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Watcher} from './sni/watcher.js';
 import {TrayItem} from './sni/item.js';
 import {AppMenu} from './ui/appMenu.js';
+import {AttentionIndicator} from './ui/attention.js';
 import {TrayButton} from './ui/trayButton.js';
 import {TrayRow} from './ui/trayRow.js';
 
@@ -15,6 +17,7 @@ export default class TrayExtension extends Extension {
     enable() {
         this._items = new Map(); // id -> TrayItem
         this._row = null;
+        this._attention = null; // panel item
         this._appMenu = null; // the one open app menu
 
         this._watcher = new Watcher();
@@ -47,6 +50,9 @@ export default class TrayExtension extends Extension {
     _onNameAcquired() {
         if (!this._row) {
             this._row = new TrayRow(Main.panel.statusArea.quickSettings.menu);
+            this._attention = new AttentionIndicator({
+                onOpenMenu: b => this._openMenu(b, false),
+            });
             this._syncVisible();
         }
         // After losing and regaining the name the watcher still lists items we dropped.
@@ -64,11 +70,15 @@ export default class TrayExtension extends Extension {
     }
 
     _dropAll() {
-        for (const item of this._items.values())
-            item.destroy();
-        this._items.clear();
         this._row?.destroy();
         this._row = null;
+        this._attention?.destroy();
+        this._attention = null;
+        for (const item of this._items.values()) {
+            item.disconnectObject(this);
+            item.destroy();
+        }
+        this._items.clear();
     }
 
     async _addItem(id, busName, objectPath) {
@@ -87,23 +97,34 @@ export default class TrayExtension extends Extension {
             return;
         }
         this._items.set(id, item);
-        this._row.add(item, new TrayButton(item, {onOpenMenu: b => this._openMenu(b)}),
+        this._row.add(item, new TrayButton(item, {onOpenMenu: b => this._openMenu(b, true)}),
             watcher.items);
+        item.connectObject('changed', () => this._syncAttention(), this);
+        this._syncAttention();
     }
 
     _removeItem(id) {
-        this._items.get(id)?.destroy();
+        const item = this._items.get(id);
         this._items.delete(id);
         this._row?.remove(id);
+        this._syncAttention();
+        item?.disconnectObject(this);
+        item?.destroy();
     }
 
-    async _openMenu(button) {
+    _syncAttention() {
+        const items = this._watcher.items.map(id => this._items.get(id)).filter(Boolean);
+        this._attention?.sync(items);
+    }
+
+    // inRow: the button is in the Quick Settings row (else in the panel).
+    async _openMenu(button, inRow) {
         this._closeAppMenu();
         const item = button.item;
         const [x, y] = button.stagePoint();
         if (item.menuPath) {
             const menu = new AppMenu(button, item, {
-                closeParent: () => Main.panel.closeQuickSettings(),
+                closeParent: inRow ? () => Main.panel.closeQuickSettings() : () => {},
                 side: St.Side.TOP,
             });
             this._appMenu = menu;
@@ -118,7 +139,8 @@ export default class TrayExtension extends Extension {
         }
         // No usable DBusMenu: the app draws its own popup, which the Quick Settings grab
         // would block.
-        Main.panel.closeQuickSettings();
+        if (inRow)
+            Main.panel.closeQuickSettings();
         item.contextMenu(x, y);
     }
 
@@ -129,5 +151,6 @@ export default class TrayExtension extends Extension {
 
     _syncVisible() {
         this._row?.setVisible(!Main.sessionMode.isLocked);
+        this._attention?.setVisible(!Main.sessionMode.isLocked);
     }
 }

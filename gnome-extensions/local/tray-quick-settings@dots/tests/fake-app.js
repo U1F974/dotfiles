@@ -7,8 +7,10 @@
 // Menu: separator, disabled item, checkmark and radio items, a submenu, a hidden item.
 // Clicking a checkmark/radio flips it (LayoutUpdated); "Quit" closes that item's connection.
 // Item 2 (if N >= 2) is Electron-style: PNG in a temp IconThemePath, registered by path.
-// stdin commands: a = toggle attention, p = toggle Passive, i = new Electron icon,
-// m = change the menus (relabel + LayoutUpdated), q = quit.
+// stdin commands: a = toggle attention (Status NeedsAttention + mail-unread icon),
+// p = toggle Passive, i = new Electron icon, m = change the menus (relabel + LayoutUpdated),
+// q = quit. Telegram-style IconName, Status untouched (optional item index, e.g. n2):
+// n = toggle org.telegram.desktop-attention-symbolic, u = toggle ...-mute-symbolic.
 // Registers again whenever org.kde.StatusNotifierWatcher appears; prints calls it receives.
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
@@ -67,6 +69,15 @@ function tooltip(title) {
     return new GLib.Variant('(sa(iiay)ss)', ['', [], title, '']);
 }
 
+// iconState: 'plain' (mail-read/unread by attention), 'attention' or 'mute'.
+function iconName(iconState) {
+    if (iconState === 'attention')
+        return 'org.telegram.desktop-attention-symbolic';
+    if (iconState === 'mute')
+        return 'org.telegram.desktop-mute-symbolic';
+    return attention ? 'mail-unread-symbolic' : 'mail-read-symbolic';
+}
+
 function status() {
     if (passive)
         return 'Passive';
@@ -109,7 +120,7 @@ for (let i = 0; i < count; i++) {
     } else {
         props = {
             Id: s(`fake-telegram-${i}`), Title: s(`Fake Telegram ${i}`), Status: s(status()),
-            IconName: s(attention ? 'mail-unread-symbolic' : 'mail-read-symbolic'),
+            IconName: s(iconName('plain')),
             ToolTip: tooltip(`Fake Telegram ${i}`),
             Menu: new GLib.Variant('o', '/MenuBar'), ItemIsMenu: new GLib.Variant('b', false),
         };
@@ -124,6 +135,8 @@ for (let i = 0; i < count; i++) {
         objectPath: electron ? '/org/chromium/StatusNotifierItem/1' : '/StatusNotifierItem',
     });
     item.electron = electron;
+    item.index = i;
+    item.iconState = 'plain';
     item.name = electron ? 'fake-electron' : `fake-telegram-${i}`;
     item.menu = menu;
     const calls = item.calls;
@@ -190,7 +203,7 @@ function updateStatus() {
     for (const item of items) {
         item.setProp('Status', s(status()));
         if (!item.electron)
-            item.setProp('IconName', s(attention ? 'mail-unread-symbolic' : 'mail-read-symbolic'));
+            item.setProp('IconName', s(iconName(item.iconState)));
         item.emit('NewStatus', new GLib.Variant('(s)', [status()]));
         item.emit('NewIcon');
     }
@@ -233,6 +246,15 @@ function readLine() {
                 item.emit('NewIcon');
             }
             print(`icon ${png.dir}/${png.name}.png`);
+        } else if (/^[nu]\d*$/.test(cmd)) {
+            const state = cmd[0] === 'n' ? 'attention' : 'mute';
+            const index = cmd.length > 1 ? Number(cmd.slice(1)) : null;
+            for (const it of items.filter(x => !x.electron && (index ?? x.index) === x.index)) {
+                it.iconState = it.iconState === state ? 'plain' : state;
+                it.setProp('IconName', s(iconName(it.iconState)));
+                it.emit('NewIcon');
+                print(`icon ${it.name} ${iconName(it.iconState)}`);
+            }
         } else if (cmd === 'm') {
             for (const it of items) {
                 const open = findNode(it.menu, 1);
