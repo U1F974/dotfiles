@@ -1,6 +1,6 @@
 # dotfiles
 
-[English version](README.md)
+[eng](README.md)
 
 Настройка рабочего стола GNOME 48: тема shell MyShell, стили GTK 3/4 и
 расширения GNOME Shell с настройками. Темная схема.
@@ -87,10 +87,12 @@ gsettings set org.gnome.shell.extensions.user-theme name 'MyShell'
 ```
 home/                                     повторяет ~, install.sh ставит симлинки
   .local/share/themes/MyShell/gnome-shell/  тема shell
+    accent.css                                сгенерирован, подключается из gnome-shell.css
   .config/gtk-4.0/gtk.css                   ручные правки GTK 4
   .config/gtk-4.0/radius.css                сгенерирован, подключается из gtk.css
   .config/gtk-3.0/gtk.css, radius.css       то же для GTK 3
 tools/gen-radius.py                       генератор radius.css
+tools/gen-accent.py                       генератор accent.css
 gnome-extensions/                         список расширений, настройки (dconf),
                                           скрипты
   local/                                    расширения, которые лежат в этом репозитории
@@ -110,6 +112,9 @@ screenshots/                              картинки для этого REA
 переопределяет ее, GTK-часть это пользовательский CSS поверх
 Adwaita/libadwaita. У каждого измененного значения в CSS есть комментарий со
 стандартным.
+
+Цвет акцента `#478061` (зеленый из логотипа Void Linux) в shell и
+GTK 4-приложениях, см. [Цвет акцента](#цвет-акцента).
 
 GNOME Shell (`home/.local/share/themes/MyShell/gnome-shell/gnome-shell.css`):
 - Скругление 3px почти везде: кнопки панели, быстрые настройки, меню,
@@ -138,6 +143,26 @@ GTK 4 / libadwaita (`home/.config/gtk-4.0/`) и GTK 3 (`home/.config/gtk-3.0/`):
 ```sh
 tools/gen-radius.py
 ```
+
+### Цвет акцента
+
+В Настройках только девять цветов акцента. `#478061` заменяет выбранный:
+- GTK 4 / libadwaita: `--accent-bg-color` в `gtk.css`. Более светлый цвет
+  для текста и ссылок libadwaita выводит из него сама.
+- Shell: тема получает акцент как `-st-accent-color` и переопределить его не
+  может. `tools/gen-accent.py` копирует все объявления с ним из стандартной
+  `gnome-shell-dark.css` в `accent.css` и подставляет `#478061`. После
+  обновления GNOME Shell:
+
+```sh
+tools/gen-accent.py
+```
+
+Цвет задан в двух местах: `ACCENT` в скрипте и `gtk.css`. То, что читает
+значение из Настроек напрямую (приложения через портал настроек, иконки папок
+Accent Icons), по-прежнему получает цвет из Настроек, поэтому оставь там
+зеленый, он ближе всех. GTK 3-приложения акцент не учитывают в любом случае:
+встроенная Adwaita всегда синяя.
 
 ### Особенности приложений
 
