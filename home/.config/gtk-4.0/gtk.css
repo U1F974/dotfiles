@@ -1,5 +1,12 @@
 @import url("radius.css");
 
+/* Accent color: green of the Void Linux logo instead of the Settings choice.
+   libadwaita derives the lighter text/link color (accent_color) from it.
+   The shell gets the same color from tools/gen-accent.py: keep in sync. */
+:root {
+  --accent-bg-color: #478061;    /* default: Settings choice, green is #3a944a */
+}
+
 /* Compact headerbars, sizes follow Fluent GTK theme (compact variant).
    Defaults from libadwaita in comments. Restart an app to see changes. */
 

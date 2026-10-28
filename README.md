@@ -1,6 +1,6 @@
 # dotfiles
 
-[Русская версия](README.ru.md)
+[рус](README.ru.md)
 
 GNOME 48 desktop setup: the MyShell shell theme, GTK 3/4 style overrides and
 GNOME Shell extensions with their settings. Dark color scheme.
@@ -86,10 +86,12 @@ gsettings set org.gnome.shell.extensions.user-theme name 'MyShell'
 ```
 home/                                     mirrors ~, symlinked by install.sh
   .local/share/themes/MyShell/gnome-shell/  shell theme
+    accent.css                                generated, imported by gnome-shell.css
   .config/gtk-4.0/gtk.css                   hand-written GTK 4 overrides
   .config/gtk-4.0/radius.css                generated, imported by gtk.css
   .config/gtk-3.0/gtk.css, radius.css       same for GTK 3
 tools/gen-radius.py                       generator for radius.css
+tools/gen-accent.py                       generator for accent.css
 gnome-extensions/                         extension list, settings (dconf),
                                           install/dump scripts
   local/                                    extensions that live in this repo
@@ -108,6 +110,9 @@ corner radii, compact headerbars). It does not replace the GTK theme: the
 shell theme imports the stock `gnome-shell-dark.css` and overrides it; the GTK
 part is user CSS on top of Adwaita/libadwaita. Every changed value in the CSS
 has the stock value in a comment.
+
+Accent color `#478061` (green of the Void Linux logo) in the shell and GTK 4
+apps, see [Accent color](#accent-color).
 
 GNOME Shell (`home/.local/share/themes/MyShell/gnome-shell/gnome-shell.css`):
 - Corner radius 3px almost everywhere: panel buttons, quick settings, menus,
@@ -135,6 +140,26 @@ rewrites the values. Regenerate after libadwaita or GTK updates:
 ```sh
 tools/gen-radius.py
 ```
+
+### Accent color
+
+Settings offers nine accent colors only. `#478061` replaces the chosen one:
+- GTK 4 / libadwaita: `--accent-bg-color` in `gtk.css`. libadwaita derives
+  the lighter color for text and links from it.
+- Shell: the theme gets the accent as `-st-accent-color` and cannot redefine
+  it. `tools/gen-accent.py` copies every declaration that uses it from the
+  stock `gnome-shell-dark.css` into `accent.css`, with `#478061` in its place.
+  Regenerate after GNOME Shell updates:
+
+```sh
+tools/gen-accent.py
+```
+
+The color is set in two places: `ACCENT` in the script and `gtk.css`. What
+reads the Settings value directly (apps through the settings portal, folder
+icons of Accent Icons) still gets the Settings color, so keep it on Green, the
+closest one. GTK 3 apps ignore the accent either way: built-in Adwaita is
+always blue.
 
 ### App-specific notes
 
