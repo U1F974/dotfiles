@@ -31,12 +31,15 @@ git clone https://github.com/U1F974/dotfiles.git ~/dotfiles
 ```
 -s, --shell           Тема shell MyShell, включается через User Themes
 
--g, --gtk             Стили GTK 3/4 в ~/.config/gtk-{3.0,4.0}
+-g, --gtk             Стили GTK 3/4 в ~/.config/gtk-{3.0,4.0},
+                      тема GTK 3 Adwaita-dark с цветом акцента
+                      в ~/.local/share/themes, тема иконок Adwaita-Void
+                      в ~/.local/share/icons
 
 -e, --extensions      Расширения GNOME Shell и их настройки
 
 -F, --firefox         Кнопки окна Firefox и LibreWolf (userChrome.css)
-                      в их профилях по умолчанию
+                      и цвет акцента (user.js) в их профилях по умолчанию
 
 -d, --dest DIR        Папка для темы shell
                       (по умолчанию: ~/.local/share/themes);
@@ -60,7 +63,9 @@ git clone https://github.com/U1F974/dotfiles.git ~/dotfiles
 
 - Тема shell: `~/.local/share/themes/MyShell`, включается через расширение
   User Themes.
-- Стили GTK: `~/.config/gtk-3.0` и `~/.config/gtk-4.0`.
+- Стили GTK: `~/.config/gtk-3.0` и `~/.config/gtk-4.0`; темная Adwaita для
+  GTK 3 с цветом акцента: `~/.local/share/themes/Adwaita-dark`; иконки в
+  цвет акцента: `~/.local/share/icons/Adwaita-Void`.
 - Firefox и LibreWolf: `firefox/` повторяет папку профиля и ставится в
   профиль, которым пользуется каждый браузер (`[Install*] Default=` в
   `profiles.ini`, иначе профиль с `Default=1`). Профили ищутся в
@@ -88,18 +93,20 @@ gsettings set org.gnome.shell.extensions.user-theme name 'MyShell'
 home/                                     повторяет ~, install.sh ставит симлинки
   .local/share/themes/MyShell/gnome-shell/  тема shell
     accent.css                                сгенерирован, подключается из gnome-shell.css
+  .local/share/themes/Adwaita-dark/gtk-3.0/ сгенерированная темная Adwaita для GTK 3 с акцентом
+  .local/share/icons/Adwaita-Void/          сгенерированная тема иконок в цвет акцента
   .config/gtk-4.0/gtk.css                   ручные правки GTK 4
   .config/gtk-4.0/radius.css                сгенерирован, подключается из gtk.css
   .config/gtk-3.0/gtk.css, radius.css       то же для GTK 3
 tools/gen-radius.py                       генератор radius.css
-tools/gen-accent.py                       генератор accent.css
+tools/gen-accent.py                       генератор файлов цвета акцента
 gnome-extensions/                         список расширений, настройки (dconf),
                                           скрипты
   local/                                    расширения, которые лежат в этом репозитории
 extras/user-theme-fix/                    исправление утечки в User Themes (GNOME 48)
 firefox/                                  повторяет профиль Firefox/LibreWolf:
   chrome/userChrome.css                     кнопки окна
-  user.js                                   включает чтение userChrome.css
+  user.js                                   включает чтение userChrome.css, цвет акцента
 screenshots/                              картинки для этого README
 ```
 
@@ -151,18 +158,44 @@ tools/gen-radius.py
   для текста и ссылок libadwaita выводит из него сама.
 - Shell: тема получает акцент как `-st-accent-color` и переопределить его не
   может. `tools/gen-accent.py` копирует все объявления с ним из стандартной
-  `gnome-shell-dark.css` в `accent.css` и подставляет `#478061`. После
-  обновления GNOME Shell:
+  `gnome-shell-dark.css` в `accent.css` и подставляет `#478061`.
+- Другие расширения (точки запущенных приложений Dash in Panel и т. п.):
+  стили расширений перебивают тему shell при любом селекторе, их может
+  перебить только стиль другого расширения. Скрипт копирует их правила с
+  акцентом с `!important` в стиль расширения Accent for extensions
+  (`gnome-extensions/local/accent@dots`).
+- GTK 3: встроенная Adwaita акцент не учитывает, в темном варианте у нее
+  зашит синий (`#15539e`) и заранее посчитанные оттенки. Скрипт пишет полную
+  копию этого CSS, где каждый оттенок синего заменен таким же оттенком
+  `#478061`, как тему `Adwaita-dark` в `~/.local/share/themes`. GTK 3 ищет
+  темы там раньше, чем в `/usr/share/themes`, поэтому настройка gtk-theme
+  остается `Adwaita-dark`. Копия только измененных правил в `gtk.css` не
+  подходит: пользовательский CSS перебивает тему при любом селекторе и
+  перебил бы и другие состояния (неактивная основная кнопка осталась бы
+  зеленой).
+- Firefox и LibreWolf берут акцент, выделение текста и выбранные пункты из
+  акцента Настроек через портал настроек. `ui.accentcolor`, `ui.highlight` и
+  `ui.selecteditem` (с парами `*text`) в `firefox/user.js` их заменяют.
+- Иконки: иконки папок и некоторых приложений следуют акценту через Accent
+  Icons, а у него есть темы иконок только на девять цветов из Настроек.
+  Скрипт копирует его зеленую тему (сделана из `#3a944a`), заменяя каждый
+  оттенок таким же оттенком `#478061`, как тему иконок `Adwaita-Void`.
+  Accent Icons использует ее для любого акцента
+  (`gnome-extensions/settings/accent-directories.ini`). Приложения, которых
+  у него нет (LibreWolf, Code - OSS; `APP_ICONS` в скрипте), получают свою
+  PNG-иконку, перекрашенную скриптом: такие иконки состоят из основного
+  цвета, белого и их смесей, и каждая смесь сохраняет долю с `#478061`.
+
+После обновления GNOME Shell, расширений или GTK 3:
 
 ```sh
 tools/gen-accent.py
 ```
 
-Цвет задан в двух местах: `ACCENT` в скрипте и `gtk.css`. То, что читает
-значение из Настроек напрямую (приложения через портал настроек, иконки папок
-Accent Icons), по-прежнему получает цвет из Настроек, поэтому оставь там
-зеленый, он ближе всех. GTK 3-приложения акцент не учитывают в любом случае:
-встроенная Adwaita всегда синяя.
+Цвет задан в трех местах: `ACCENT` в скрипте, `gtk.css` и `firefox/user.js`.
+Другие приложения, которые читают значение из Настроек через портал
+настроек, по-прежнему получают цвет из Настроек, поэтому оставь там зеленый,
+он ближе всех.
 
 ### Особенности приложений
 
@@ -203,7 +236,7 @@ Accent Icons), по-прежнему получает цвет из Настро
 
 | Расширение | Зачем | Что изменено в настройках |
 |---|---|---|
-| [Accent Icons](https://extensions.gnome.org/extension/7535/accent-directories/) | иконки папок в цвет акцента | по умолчанию |
+| [Accent Icons](https://extensions.gnome.org/extension/7535/accent-directories/) | иконки папок в цвет акцента | тема `Adwaita-Void` для любого акцента |
 | [Add to Desktop](https://extensions.gnome.org/extension/3240/add-to-desktop/) | "добавить на рабочий стол" в меню сетки приложений | по умолчанию |
 | [AppGrid Fit](https://extensions.gnome.org/extension/9933/app-grid-icon-size/) | размер сетки приложений | 12 столбцов x 6 строк, без пресетов, страницы не объединяются |
 | [Caffeine](https://extensions.gnome.org/extension/517/caffeine/) | не гасить экран | переключение из командной строки включено |
@@ -219,11 +252,12 @@ Accent Icons), по-прежнему получает цвет из Настро
 | [Places Status Indicator](https://gitlab.gnome.org/GNOME/gnome-shell-extensions) | меню "Места" на панели | по умолчанию |
 | [User Themes](https://gitlab.gnome.org/GNOME/gnome-shell-extensions) | загружает тему MyShell | тема `MyShell` |
 | Tray Quick Settings (`gnome-extensions/local`) | значки трея приложений в Quick Settings | свое расширение, настроек нет |
+| Accent for extensions (`gnome-extensions/local`) | цвет акцента в других расширениях, см. [Цвет акцента](#цвет-акцента) | свое расширение, настроек нет |
 
-Четыре расширения перед последним идут в пакете дистрибутива
-`gnome-shell-extensions`. Tray Quick Settings нет на extensions.gnome.org:
-исходники лежат в `gnome-extensions/local/tray-quick-settings@dots`, а
-`install.sh` делает на них симлинк в `~/.local/share/gnome-shell/extensions`.
+Четыре расширения перед двумя последними идут в пакете дистрибутива
+`gnome-shell-extensions`. Двух последних нет на extensions.gnome.org:
+исходники лежат в `gnome-extensions/local/`, а `install.sh` делает на них
+симлинки в `~/.local/share/gnome-shell/extensions`.
 
 **Tray Quick Settings** (`tray-quick-settings@dots`) показывает значки трея
 приложений отдельным рядом внизу Quick Settings. Левый клик выполняет действие

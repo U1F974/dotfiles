@@ -2,7 +2,7 @@
 # source: ego = extensions.gnome.org, package = gnome-shell-extensions,
 #         app = installed by its application,
 #         local = lives in this repo under local/ and is linked by install.sh
-accent-directories@taiwbi.com	ego	-
+accent-directories@taiwbi.com	ego	accent-directories
 add-to-desktop@tommimon.github.com	ego	-
 appgrid-size@luyao	ego	appgrid-size
 caffeine@patapon.info	ego	caffeine
@@ -18,3 +18,4 @@ drive-menu@gnome-shell-extensions.gcampax.github.com	package	-
 places-menu@gnome-shell-extensions.gcampax.github.com	package	-
 user-theme@gnome-shell-extensions.gcampax.github.com	package	user-theme
 tray-quick-settings@dots	local	-
+accent@dots	local	-

@@ -6,7 +6,10 @@
 # home/.local/share/themes/MyShell goes to ~/.local/share/themes/MyShell
 # (enabled through the User Themes extension), home/.config/gtk-* to
 # ~/.config/gtk-*: libadwaita apps ignore GTK themes and only read user CSS
-# from there. firefox/ mirrors a Firefox profile and goes to the profiles of
+# from there. home/.local/share/themes/Adwaita-dark (GTK 3 Adwaita dark with
+# the accent color) goes to ~/.local/share/themes/Adwaita-dark, where GTK 3
+# finds it before the stock one, the icon theme Adwaita-Void (icons of Accent
+# Icons in the accent color) to ~/.local/share/icons. firefox/ mirrors a Firefox profile and goes to the profiles of
 # Firefox and LibreWolf (found through profiles.ini). A file already in place is backed up with a timestamp.
 # Edits in the repo apply right away; run this again after adding files.
 #
@@ -16,7 +19,8 @@ set -eu
 
 SRC=$(cd "$(dirname "$0")" && pwd)
 HOME_SRC="$SRC/home"
-DEST_DEFAULT="${XDG_DATA_HOME:-$HOME/.local/share}/themes"
+DATA="${XDG_DATA_HOME:-$HOME/.local/share}"
+DEST_DEFAULT="$DATA/themes"
 CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}"
 STAMP=$(date +%Y%m%d-%H%M%S)
 USER_THEME=user-theme@gnome-shell-extensions.gcampax.github.com
@@ -29,10 +33,13 @@ Without -s, -g, -e or -F all four parts are installed.
 
 OPTIONS:
   -s, --shell           Shell theme MyShell, enabled through User Themes
-  -g, --gtk             GTK 3/4 styles in $CONFIG/gtk-{3.0,4.0}
+  -g, --gtk             GTK 3/4 styles in $CONFIG/gtk-{3.0,4.0},
+                        GTK 3 theme Adwaita-dark with the accent color
+                        in $DATA/themes, icon theme Adwaita-Void
+                        in $DATA/icons
   -e, --extensions      GNOME Shell extensions and their settings
   -F, --firefox         Firefox and LibreWolf window buttons (userChrome.css)
-                        in their default profiles
+                        and accent color (user.js) in their default profiles
   -d, --dest DIR        Directory for the shell theme
                         (default: $DEST_DEFAULT);
                         User Themes also reads ~/.themes and /usr/share/themes
@@ -162,6 +169,10 @@ if [ $DO_SHELL = 0 ] && [ $DO_GTK = 0 ] && [ $DO_EXT = 0 ] && [ $DO_FF = 0 ]; th
 fi
 THEME_SRC="$HOME_SRC/.local/share/themes/MyShell"
 THEME_DIR="$DEST/MyShell"
+GTK3_THEME_SRC="$HOME_SRC/.local/share/themes/Adwaita-dark"
+GTK3_THEME_DIR="$DATA/themes/Adwaita-dark"
+ICONS_SRC="$HOME_SRC/.local/share/icons/Adwaita-Void"
+ICONS_DIR="$DATA/icons/Adwaita-Void"
 
 if [ $DO_FF = 1 ]; then
     FF_PROFILES=$(firefox_profiles)
@@ -186,6 +197,13 @@ if [ $UNINSTALL = 1 ]; then
     if [ $DO_GTK = 1 ]; then
         for ver in 3.0 4.0; do
             unlink_tree "$HOME_SRC/.config/gtk-$ver" "$CONFIG/gtk-$ver"
+        done
+        unlink_tree "$GTK3_THEME_SRC" "$GTK3_THEME_DIR"
+        unlink_tree "$ICONS_SRC" "$ICONS_DIR"
+        for dir in "$GTK3_THEME_DIR" "$ICONS_DIR"; do
+            if [ -d "$dir" ]; then
+                find "$dir" -depth -type d -empty -delete
+            fi
         done
     fi
 
@@ -216,6 +234,8 @@ if [ $DO_GTK = 1 ]; then
     for ver in 3.0 4.0; do
         link_tree "$HOME_SRC/.config/gtk-$ver" "$CONFIG/gtk-$ver"
     done
+    link_tree "$GTK3_THEME_SRC" "$GTK3_THEME_DIR"
+    link_tree "$ICONS_SRC" "$ICONS_DIR"
 fi
 
 # The browser reads both files at startup

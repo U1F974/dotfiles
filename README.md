@@ -31,12 +31,15 @@ git clone https://github.com/U1F974/dotfiles.git ~/dotfiles
 ```
 -s, --shell           Shell theme MyShell, enabled through User Themes
 
--g, --gtk             GTK 3/4 styles in ~/.config/gtk-{3.0,4.0}
+-g, --gtk             GTK 3/4 styles in ~/.config/gtk-{3.0,4.0},
+                      GTK 3 theme Adwaita-dark with the accent color
+                      in ~/.local/share/themes, icon theme Adwaita-Void
+                      in ~/.local/share/icons
 
 -e, --extensions      GNOME Shell extensions and their settings
 
 -F, --firefox         Firefox and LibreWolf window buttons (userChrome.css)
-                      in their default profiles
+                      and accent color (user.js) in their default profiles
 
 -d, --dest DIR        Directory for the shell theme
                       (Default: ~/.local/share/themes);
@@ -60,7 +63,9 @@ Without `-s`, `-g`, `-e` or `-F` all four parts are installed. For example,
 
 - Shell theme: `~/.local/share/themes/MyShell`, enabled through the User
   Themes extension.
-- GTK styles: `~/.config/gtk-3.0` and `~/.config/gtk-4.0`.
+- GTK styles: `~/.config/gtk-3.0` and `~/.config/gtk-4.0`; GTK 3 Adwaita
+  dark with the accent color: `~/.local/share/themes/Adwaita-dark`; icons in
+  the accent color: `~/.local/share/icons/Adwaita-Void`.
 - Firefox and LibreWolf: `firefox/` mirrors a profile directory and is
   linked into the profile each browser uses (`[Install*] Default=` in
   `profiles.ini`, else the profile with `Default=1`). Profiles are looked up
@@ -87,18 +92,20 @@ gsettings set org.gnome.shell.extensions.user-theme name 'MyShell'
 home/                                     mirrors ~, symlinked by install.sh
   .local/share/themes/MyShell/gnome-shell/  shell theme
     accent.css                                generated, imported by gnome-shell.css
+  .local/share/themes/Adwaita-dark/gtk-3.0/ generated GTK 3 Adwaita dark with the accent
+  .local/share/icons/Adwaita-Void/          generated icon theme in the accent color
   .config/gtk-4.0/gtk.css                   hand-written GTK 4 overrides
   .config/gtk-4.0/radius.css                generated, imported by gtk.css
   .config/gtk-3.0/gtk.css, radius.css       same for GTK 3
 tools/gen-radius.py                       generator for radius.css
-tools/gen-accent.py                       generator for accent.css
+tools/gen-accent.py                       generator for the accent color files
 gnome-extensions/                         extension list, settings (dconf),
                                           install/dump scripts
   local/                                    extensions that live in this repo
 extras/user-theme-fix/                    fix for a leak in User Themes (GNOME 48)
 firefox/                                  mirrors a Firefox/LibreWolf profile:
   chrome/userChrome.css                     window buttons
-  user.js                                   makes Firefox read userChrome.css
+  user.js                                   makes Firefox read userChrome.css, accent color
 screenshots/                              images for this README
 ```
 
@@ -149,17 +156,42 @@ Settings offers nine accent colors only. `#478061` replaces the chosen one:
 - Shell: the theme gets the accent as `-st-accent-color` and cannot redefine
   it. `tools/gen-accent.py` copies every declaration that uses it from the
   stock `gnome-shell-dark.css` into `accent.css`, with `#478061` in its place.
-  Regenerate after GNOME Shell updates:
+- Other extensions (running app dots of Dash in Panel and so on): extension
+  stylesheets win over the shell theme whatever the selector, only another
+  extension stylesheet can override them. The script copies their accent
+  rules with `!important` into the stylesheet of the Accent for extensions
+  extension (`gnome-extensions/local/accent@dots`).
+- GTK 3: built-in Adwaita does not follow the accent, its dark variant has a
+  fixed blue (`#15539e`) and shades of it computed in advance. The script
+  writes a full copy of that CSS with every shade moved to the same shade of
+  `#478061` as the theme `Adwaita-dark` in `~/.local/share/themes`. GTK 3
+  looks there before `/usr/share/themes`, so the gtk-theme setting stays
+  `Adwaita-dark`. A copy of only the changed rules in `gtk.css` would not
+  work: user CSS beats the theme whatever the selector, so it would also
+  override other states (a disabled suggested button would stay green).
+- Firefox and LibreWolf take the accent, text selection and selected items
+  from the Settings accent through the settings portal. `ui.accentcolor`,
+  `ui.highlight` and `ui.selecteditem` (with their `*text` pairs) in
+  `firefox/user.js` replace them.
+- Icons: folder and some app icons follow the accent through Accent Icons,
+  which only has icon themes for the nine Settings colors. The script copies
+  its green theme (made from `#3a944a`) with every shade moved to the same
+  shade of `#478061` as the icon theme `Adwaita-Void`. Accent Icons uses it
+  for every accent (`gnome-extensions/settings/accent-directories.ini`).
+  Apps it does not cover (LibreWolf, Code - OSS; `APP_ICONS` in the script)
+  get their own PNG icon recolored: these icons are the main color, white and
+  blends of the two, and each blend keeps its ratio with `#478061`.
+
+Regenerate after GNOME Shell, extension or GTK 3 updates:
 
 ```sh
 tools/gen-accent.py
 ```
 
-The color is set in two places: `ACCENT` in the script and `gtk.css`. What
-reads the Settings value directly (apps through the settings portal, folder
-icons of Accent Icons) still gets the Settings color, so keep it on Green, the
-closest one. GTK 3 apps ignore the accent either way: built-in Adwaita is
-always blue.
+The color is set in three places: `ACCENT` in the script, `gtk.css` and
+`firefox/user.js`. Other apps that read the Settings value through the
+settings portal still get the Settings color, so keep it on Green, the
+closest one.
 
 ### App-specific notes
 
@@ -197,7 +229,7 @@ always blue.
 
 | Extension | What for | Changed settings |
 |---|---|---|
-| [Accent Icons](https://extensions.gnome.org/extension/7535/accent-directories/) | folder icons follow the accent color | defaults |
+| [Accent Icons](https://extensions.gnome.org/extension/7535/accent-directories/) | folder icons follow the accent color | theme `Adwaita-Void` for every accent |
 | [Add to Desktop](https://extensions.gnome.org/extension/3240/add-to-desktop/) | "add to desktop" in the app grid menu | defaults |
 | [AppGrid Fit](https://extensions.gnome.org/extension/9933/app-grid-icon-size/) | app grid size | 12 columns x 6 rows, presets off, pages not merged |
 | [Caffeine](https://extensions.gnome.org/extension/517/caffeine/) | keep the screen awake | command line toggle on |
@@ -213,11 +245,12 @@ always blue.
 | [Places Status Indicator](https://gitlab.gnome.org/GNOME/gnome-shell-extensions) | Places menu in the panel | defaults |
 | [User Themes](https://gitlab.gnome.org/GNOME/gnome-shell-extensions) | loads the MyShell theme | theme name `MyShell` |
 | Tray Quick Settings (`gnome-extensions/local`) | app tray icons in Quick Settings | own extension, no settings |
+| Accent for extensions (`gnome-extensions/local`) | accent color in other extensions, see [Accent color](#accent-color) | own extension, no settings |
 
-The four before the last come with the distro package
-`gnome-shell-extensions`. Tray Quick Settings is not on extensions.gnome.org:
-its source is in `gnome-extensions/local/tray-quick-settings@dots` and
-`install.sh` symlinks it into `~/.local/share/gnome-shell/extensions`.
+The four before the last two come with the distro package
+`gnome-shell-extensions`. The last two are not on extensions.gnome.org: their
+sources are in `gnome-extensions/local/` and `install.sh` symlinks them into
+`~/.local/share/gnome-shell/extensions`.
 
 **Tray Quick Settings** (`tray-quick-settings@dots`) puts the tray icons of
 apps in a row at the bottom of Quick Settings. Left click runs the app's
