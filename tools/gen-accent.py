@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Generate CSS and icons that replace the system accent color with ACCENT.
+"""Set the accent color and generate CSS and icons that use it instead of the
+Settings choice.
+
+The accent color (ACCENT below) is the --accent-bg-color in
+home/.config/gtk-4.0/gtk.css: GTK 4 apps read it from there. The script also
+writes it to the ui.* prefs in firefox/user.js (Firefox and LibreWolf) and
+uses it for the generated files.
 
 GNOME Shell takes the accent from the Settings choice (blue, teal, green, ...)
 and passes it to the theme and to extension stylesheets as -st-accent-color;
@@ -33,17 +39,19 @@ theme Adwaita-Void. Accent Icons is set to use it for every accent
 (gnome-extensions/settings/accent-directories.ini). Icons of apps it does
 not cover (APP_ICONS) are recolored from the app's own PNG.
 
-GTK 4 apps get the same color from --accent-bg-color in
-home/.config/gtk-4.0/gtk.css, Firefox and LibreWolf from the ui.* prefs in
-firefox/user.js: keep the three in sync.
+Text on the accent stays white everywhere (the shell, GTK, Firefox), so a
+light accent gets a warning about its contrast.
 
-Run it again after GNOME Shell, extension or GTK 3 updates.
+Usage: tools/gen-accent.py '#rrggbb'   # set a new accent and generate
+       tools/gen-accent.py             # generate with the current accent, after
+                                        # GNOME Shell, extension or GTK 3 updates
 
-Usage: tools/gen-accent.py      # writes in the repo (installed as symlinks):
-                                 # home/.local/share/themes/MyShell/gnome-shell/accent.css
-                                 # gnome-extensions/local/accent@dots/stylesheet.css
-                                 # home/.local/share/themes/Adwaita-dark/gtk-3.0/gtk.css
-                                 # home/.local/share/icons/Adwaita-Void/
+Writes in the repo (installed as symlinks):
+  home/.config/gtk-4.0/gtk.css, firefox/user.js (the accent value only)
+  home/.local/share/themes/MyShell/gnome-shell/accent.css
+  gnome-extensions/local/accent@dots/stylesheet.css
+  home/.local/share/themes/Adwaita-dark/gtk-3.0/gtk.css
+  home/.local/share/icons/Adwaita-Void/
 """
 
 import colorsys
@@ -57,9 +65,16 @@ import gi
 gi.require_version('GdkPixbuf', '2.0')
 from gi.repository import GdkPixbuf, GLib
 
-ACCENT = '#478061'                 # green of the Void Linux logo
+ACCENT = None                      # read from GTK4_CSS or the command line
 REPO = Path(__file__).resolve().parent.parent
 THEMES = REPO / 'home' / '.local' / 'share' / 'themes'
+
+# Where the accent value lives, and how many times
+GTK4_CSS = REPO / 'home' / '.config' / 'gtk-4.0' / 'gtk.css'
+GTK4_ACCENT = re.compile(r'(--accent-bg-color: )(#[0-9a-fA-F]{6})')
+FIREFOX_USER_JS = REPO / 'firefox' / 'user.js'
+FIREFOX_ACCENT = re.compile(r'(user_pref\("ui\.(?:accentcolor|highlight|selecteditem)", ")'
+                            r'(#[0-9a-fA-F]{6})')
 
 SHELL_SOURCE = ('/usr/share/gnome-shell/gnome-shell-theme.gresource',
                 '/org/gnome/shell/theme/gnome-shell-dark.css')
@@ -285,7 +300,42 @@ def write_icon_index():
     index.write_text(text)
 
 
+def read_accent():
+    m = GTK4_ACCENT.search(GTK4_CSS.read_text())
+    if not m:
+        sys.exit(f'no --accent-bg-color: #rrggbb in {GTK4_CSS}')
+    return m.group(2).lower()
+
+
+def write_accent():
+    for path, pattern, count in ((GTK4_CSS, GTK4_ACCENT, 1), (FIREFOX_USER_JS, FIREFOX_ACCENT, 3)):
+        text, n = pattern.subn(rf'\g<1>{ACCENT}', path.read_text())
+        if n != count:
+            sys.exit(f'{path}: expected {count} accent values, found {n}')
+        path.write_text(text)
+        print('wrote', path)
+
+
+def contrast_with_white(color):
+    """WCAG contrast ratio of white text on color."""
+    def linear(v):
+        v /= 255
+        return v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4
+    r, g, b = (linear(v) for v in bytes.fromhex(color[1:]))
+    return 1.05 / (0.2126 * r + 0.7152 * g + 0.0722 * b + 0.05)
+
+
 def main():
+    global ACCENT
+    if len(sys.argv) > 2 or (len(sys.argv) == 2 and
+                             not re.fullmatch(r'#[0-9a-fA-F]{6}', sys.argv[1])):
+        sys.exit("usage: tools/gen-accent.py ['#rrggbb']")
+    if len(sys.argv) == 2:
+        ACCENT = sys.argv[1].lower()
+        write_accent()
+    else:
+        ACCENT = read_accent()
+    print('accent', ACCENT)
     SHELL_TARGET.write_text(generate_shell())
     print('wrote', SHELL_TARGET)
     EXTENSIONS_TARGET.write_text(generate_extensions())
@@ -294,6 +344,13 @@ def main():
     GTK3_TARGET.write_text(generate_gtk3(extract(*GTK3_SOURCE)))
     print('wrote', GTK3_TARGET)
     generate_icons()
+
+    # 3:1 is the WCAG minimum for large text and controls; the Settings
+    # colors range from 3.0:1 (yellow) to 5.9:1 (purple)
+    contrast = contrast_with_white(ACCENT)
+    if contrast < 3:
+        print(f'warning: white text on {ACCENT} has contrast {contrast:.1f}:1, '
+              'below 3:1 (hard to read)', file=sys.stderr)
 
 
 if __name__ == '__main__':
