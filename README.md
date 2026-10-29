@@ -118,8 +118,8 @@ shell theme imports the stock `gnome-shell-dark.css` and overrides it; the GTK
 part is user CSS on top of Adwaita/libadwaita. Every changed value in the CSS
 has the stock value in a comment.
 
-Accent color `#478061` (green of the Void Linux logo) in the shell and GTK 4
-apps, see [Accent color](#accent-color).
+Own accent color instead of the nine in Settings, see
+[Accent color](#accent-color).
 
 GNOME Shell (`home/.local/share/themes/MyShell/gnome-shell/gnome-shell.css`):
 - Corner radius 3px almost everywhere: panel buttons, quick settings, menus,
@@ -150,12 +150,38 @@ tools/gen-radius.py
 
 ### Accent color
 
-Settings offers nine accent colors only. `#478061` replaces the chosen one:
-- GTK 4 / libadwaita: `--accent-bg-color` in `gtk.css`. libadwaita derives
-  the lighter color for text and links from it.
+Settings offers nine accent colors only. This repo uses its own everywhere
+the accent shows, now the green of the Void Linux logo (`#478061`). To change
+it:
+
+```sh
+tools/gen-accent.py '#rrggbb'
+./install.sh -g
+gsettings set org.gnome.shell.extensions.user-theme name '' &&
+gsettings set org.gnome.shell.extensions.user-theme name 'MyShell'
+gnome-extensions disable accent@dots && gnome-extensions enable accent@dots
+gsettings set org.gnome.desktop.interface icon-theme 'Adwaita' &&
+gsettings set org.gnome.desktop.interface icon-theme 'Adwaita-Void'
+```
+
+The script writes the color to `gtk.css` and `firefox/user.js` and generates
+the files listed below. `./install.sh -g` links new files; the next lines
+reload the shell theme, the stylesheet for extensions and the icons. Then
+restart GTK apps, Firefox and LibreWolf. In Settings pick the closest of the
+nine: apps that read the accent through the settings portal still get it.
+Text on the accent stays white everywhere, so the script warns when the
+contrast is below 3:1, lower than any Settings color (light accents).
+
+After GNOME Shell, extension or GTK 3 updates, run `tools/gen-accent.py`
+without a color: it regenerates the files with the current one.
+
+Where the accent goes:
+- GTK 4 / libadwaita: `--accent-bg-color` in `gtk.css`, the only place the
+  color is kept (the script reads it from there). libadwaita derives the
+  lighter color for text and links from it.
 - Shell: the theme gets the accent as `-st-accent-color` and cannot redefine
-  it. `tools/gen-accent.py` copies every declaration that uses it from the
-  stock `gnome-shell-dark.css` into `accent.css`, with `#478061` in its place.
+  it. The script copies every declaration that uses it from the stock
+  `gnome-shell-dark.css` into `accent.css`, with our color in its place.
 - Other extensions (running app dots of Dash in Panel and so on): extension
   stylesheets win over the shell theme whatever the selector, only another
   extension stylesheet can override them. The script copies their accent
@@ -164,11 +190,11 @@ Settings offers nine accent colors only. `#478061` replaces the chosen one:
 - GTK 3: built-in Adwaita does not follow the accent, its dark variant has a
   fixed blue (`#15539e`) and shades of it computed in advance. The script
   writes a full copy of that CSS with every shade moved to the same shade of
-  `#478061` as the theme `Adwaita-dark` in `~/.local/share/themes`. GTK 3
+  our color as the theme `Adwaita-dark` in `~/.local/share/themes`. GTK 3
   looks there before `/usr/share/themes`, so the gtk-theme setting stays
   `Adwaita-dark`. A copy of only the changed rules in `gtk.css` would not
   work: user CSS beats the theme whatever the selector, so it would also
-  override other states (a disabled suggested button would stay green).
+  override other states (a disabled suggested button would keep the accent).
 - Firefox and LibreWolf take the accent, text selection and selected items
   from the Settings accent through the settings portal. `ui.accentcolor`,
   `ui.highlight` and `ui.selecteditem` (with their `*text` pairs) in
@@ -176,22 +202,11 @@ Settings offers nine accent colors only. `#478061` replaces the chosen one:
 - Icons: folder and some app icons follow the accent through Accent Icons,
   which only has icon themes for the nine Settings colors. The script copies
   its green theme (made from `#3a944a`) with every shade moved to the same
-  shade of `#478061` as the icon theme `Adwaita-Void`. Accent Icons uses it
+  shade of our color as the icon theme `Adwaita-Void`. Accent Icons uses it
   for every accent (`gnome-extensions/settings/accent-directories.ini`).
   Apps it does not cover (LibreWolf, Code - OSS; `APP_ICONS` in the script)
   get their own PNG icon recolored: these icons are the main color, white and
-  blends of the two, and each blend keeps its ratio with `#478061`.
-
-Regenerate after GNOME Shell, extension or GTK 3 updates:
-
-```sh
-tools/gen-accent.py
-```
-
-The color is set in three places: `ACCENT` in the script, `gtk.css` and
-`firefox/user.js`. Other apps that read the Settings value through the
-settings portal still get the Settings color, so keep it on Green, the
-closest one.
+  blends of the two, and each blend keeps its ratio with our color.
 
 ### App-specific notes
 
