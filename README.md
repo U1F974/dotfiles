@@ -7,11 +7,11 @@ GNOME Shell extensions with their settings. Dark color scheme.
 
 ## Screenshots
 
-![Headerbars and window buttons in Vesktop, System Monitor, Text Editor, Files and Fractal](screenshots/windows.png)
+![Headerbars and window buttons in Vesktop, Files, Ptyxis and Fractal](screenshots/windows.png)
 
-| Quick settings                                         | Calendar and notifications                                   |
-| ------------------------------------------------------ | ------------------------------------------------------------ |
-| ![Quick settings menu](screenshots/quick-settings.png) | ![Calendar and notifications menu](screenshots/calendar.png) |
+| Quick settings and tray                                                                       | Calendar and notifications                                   |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| ![Quick settings menu with tray icons at the bottom](screenshots/quick-settings-and-tray.png) | ![Calendar and notifications menu](screenshots/calendar.png) |
 
 | Places menu | Text Editor menu |
 | --- | --- |
