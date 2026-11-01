@@ -9,8 +9,8 @@ GNOME Shell extensions with their settings. Dark color scheme.
 
 ![Headerbars and window buttons in Vesktop, System Monitor, Text Editor, Files and Fractal](screenshots/windows.png)
 
-| Quick settings | Calendar and notifications |
-| --- | --- |
+| Quick settings                                         | Calendar and notifications                                   |
+| ------------------------------------------------------ | ------------------------------------------------------------ |
 | ![Quick settings menu](screenshots/quick-settings.png) | ![Calendar and notifications menu](screenshots/calendar.png) |
 
 | Places menu | Text Editor menu |
@@ -242,25 +242,25 @@ Where the accent goes:
 
 ## GNOME Shell extensions
 
-| Extension | What for | Changed settings |
-|---|---|---|
-| [Accent Icons](https://extensions.gnome.org/extension/7535/accent-directories/) | folder icons follow the accent color | theme `Adwaita-Void` for every accent |
-| [Add to Desktop](https://extensions.gnome.org/extension/3240/add-to-desktop/) | "add to desktop" in the app grid menu | defaults |
-| [AppGrid Fit](https://extensions.gnome.org/extension/9933/app-grid-icon-size/) | app grid size | 12 columns x 6 rows, presets off, pages not merged |
-| [Caffeine](https://extensions.gnome.org/extension/517/caffeine/) | keep the screen awake | command line toggle on |
-| [Clipboard Indicator](https://extensions.gnome.org/extension/779/clipboard-indicator/) | clipboard history | 20 items |
-| [Dash in Panel](https://extensions.gnome.org/extension/7855/dash-in-panel/) | app icons in the top panel | Activities button shown; app grid button, dash in overview and overview at start-up off |
-| [Gtk4 Desktop Icons NG (DING)](https://extensions.gnome.org/extension/5263/gtk4-desktop-icons-ng-ding/) | desktop icons | defaults |
-| [Just Perfection](https://extensions.gnome.org/extension/3843/just-perfection/) | shell tweaks | defaults |
-| [Media Controls](https://extensions.gnome.org/extension/4470/media-controls/) | player in the panel | on the right, fixed label width 200px, no previous/next/seek buttons, no track slider |
-| [Top Bar Organizer](https://extensions.gnome.org/extension/4356/top-bar-organizer/) | order of panel items | see `settings/top-bar-organizer.ini` |
-| [Gradia Capture](https://github.com/AlexanderVanhee/gradia-companion) | screenshots with Gradia | annotation tool colors; installed by the Gradia app, not on extensions.gnome.org |
-| [Auto Move Windows](https://gitlab.gnome.org/GNOME/gnome-shell-extensions) | apps to fixed workspaces | defaults |
-| [Removable Drive Menu](https://gitlab.gnome.org/GNOME/gnome-shell-extensions) | mounted drives in the panel | defaults |
-| [Places Status Indicator](https://gitlab.gnome.org/GNOME/gnome-shell-extensions) | Places menu in the panel | defaults |
-| [User Themes](https://gitlab.gnome.org/GNOME/gnome-shell-extensions) | loads the MyShell theme | theme name `MyShell` |
-| Tray Quick Settings (`gnome-extensions/local`) | app tray icons in Quick Settings | own extension, no settings |
-| Accent for extensions (`gnome-extensions/local`) | accent color in other extensions, see [Accent color](#accent-color) | own extension, no settings |
+| Extension                                                                                               | What for                                                            | Changed settings                                                                        |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| [Accent Icons](https://extensions.gnome.org/extension/7535/accent-directories/)                         | folder icons follow the accent color                                | theme `Adwaita-Void` for every accent                                                   |
+| [Add to Desktop](https://extensions.gnome.org/extension/3240/add-to-desktop/)                           | "add to desktop" in the app grid menu                               | defaults                                                                                |
+| [AppGrid Fit](https://extensions.gnome.org/extension/9933/app-grid-icon-size/)                          | app grid size                                                       | 12 columns x 6 rows, presets off, pages not merged                                      |
+| [Caffeine](https://extensions.gnome.org/extension/517/caffeine/)                                        | keep the screen awake                                               | command line toggle on                                                                  |
+| [Clipboard Indicator](https://extensions.gnome.org/extension/779/clipboard-indicator/)                  | clipboard history                                                   | 20 items                                                                                |
+| [Dash in Panel](https://extensions.gnome.org/extension/7855/dash-in-panel/)                             | app icons in the top panel                                          | Activities button shown; app grid button, dash in overview and overview at start-up off |
+| [Gtk4 Desktop Icons NG (DING)](https://extensions.gnome.org/extension/5263/gtk4-desktop-icons-ng-ding/) | desktop icons                                                       | defaults                                                                                |
+| [Just Perfection](https://extensions.gnome.org/extension/3843/just-perfection/)                         | shell tweaks                                                        | defaults                                                                                |
+| [Media Controls](https://extensions.gnome.org/extension/4470/media-controls/)                           | player in the panel                                                 | on the right, fixed label width 200px, no previous/next/seek buttons, no track slider   |
+| [Top Bar Organizer](https://extensions.gnome.org/extension/4356/top-bar-organizer/)                     | order of panel items                                                | see `settings/top-bar-organizer.ini`                                                    |
+| [Gradia Capture](https://github.com/AlexanderVanhee/gradia-companion)                                   | screenshots with Gradia                                             | annotation tool colors; installed by the Gradia app, not on extensions.gnome.org        |
+| [Auto Move Windows](https://gitlab.gnome.org/GNOME/gnome-shell-extensions)                              | apps to fixed workspaces                                            | defaults                                                                                |
+| [Removable Drive Menu](https://gitlab.gnome.org/GNOME/gnome-shell-extensions)                           | mounted drives in the panel                                         | defaults                                                                                |
+| [Places Status Indicator](https://gitlab.gnome.org/GNOME/gnome-shell-extensions)                        | Places menu in the panel                                            | defaults                                                                                |
+| [User Themes](https://gitlab.gnome.org/GNOME/gnome-shell-extensions)                                    | loads the MyShell theme                                             | theme name `MyShell`                                                                    |
+| Tray Quick Settings (`gnome-extensions/local`)                                                          | app tray icons in Quick Settings                                    | own extension, no settings                                                              |
+| Accent for extensions (`gnome-extensions/local`)                                                        | accent color in other extensions, see [Accent color](#accent-color) | own extension, no settings                                                              |
 
 The four before the last two come with the distro package
 `gnome-shell-extensions`. The last two are not on extensions.gnome.org: their

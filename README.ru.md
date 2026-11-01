@@ -9,8 +9,8 @@
 
 ![Заголовки и кнопки окон в Vesktop, System Monitor, Text Editor, Files и Fractal](screenshots/windows.png)
 
-| Быстрые настройки | Календарь и уведомления |
-| --- | --- |
+| Быстрые настройки                                        | Календарь и уведомления                                   |
+| -------------------------------------------------------- | --------------------------------------------------------- |
 | ![Меню быстрых настроек](screenshots/quick-settings.png) | ![Меню календаря и уведомлений](screenshots/calendar.png) |
 
 | Меню Places | Меню Text Editor |
@@ -250,25 +250,25 @@ gsettings set org.gnome.desktop.interface icon-theme 'Adwaita-Void'
 
 ## Расширения GNOME Shell
 
-| Расширение | Зачем | Что изменено в настройках |
-|---|---|---|
-| [Accent Icons](https://extensions.gnome.org/extension/7535/accent-directories/) | иконки папок в цвет акцента | тема `Adwaita-Void` для любого акцента |
-| [Add to Desktop](https://extensions.gnome.org/extension/3240/add-to-desktop/) | "добавить на рабочий стол" в меню сетки приложений | по умолчанию |
-| [AppGrid Fit](https://extensions.gnome.org/extension/9933/app-grid-icon-size/) | размер сетки приложений | 12 столбцов x 6 строк, без пресетов, страницы не объединяются |
-| [Caffeine](https://extensions.gnome.org/extension/517/caffeine/) | не гасить экран | переключение из командной строки включено |
-| [Clipboard Indicator](https://extensions.gnome.org/extension/779/clipboard-indicator/) | история буфера обмена | 20 записей |
-| [Dash in Panel](https://extensions.gnome.org/extension/7855/dash-in-panel/) | значки приложений на панели | кнопка Activities видна; кнопка сетки приложений, док в обзоре и обзор при входе выключены |
-| [Gtk4 Desktop Icons NG (DING)](https://extensions.gnome.org/extension/5263/gtk4-desktop-icons-ng-ding/) | значки на рабочем столе | по умолчанию |
-| [Just Perfection](https://extensions.gnome.org/extension/3843/just-perfection/) | тонкая настройка shell | по умолчанию |
-| [Media Controls](https://extensions.gnome.org/extension/4470/media-controls/) | плеер на панели | справа, фиксированная ширина подписи 200px, без кнопок "назад", "вперед" и перемотки, без ползунка трека |
-| [Top Bar Organizer](https://extensions.gnome.org/extension/4356/top-bar-organizer/) | порядок элементов панели | см. `settings/top-bar-organizer.ini` |
-| [Gradia Capture](https://github.com/AlexanderVanhee/gradia-companion) | скриншоты через Gradia | цвета инструментов разметки; ставится приложением Gradia, на extensions.gnome.org его нет |
-| [Auto Move Windows](https://gitlab.gnome.org/GNOME/gnome-shell-extensions) | приложения на свои рабочие столы | по умолчанию |
-| [Removable Drive Menu](https://gitlab.gnome.org/GNOME/gnome-shell-extensions) | подключенные диски на панели | по умолчанию |
-| [Places Status Indicator](https://gitlab.gnome.org/GNOME/gnome-shell-extensions) | меню "Места" на панели | по умолчанию |
-| [User Themes](https://gitlab.gnome.org/GNOME/gnome-shell-extensions) | загружает тему MyShell | тема `MyShell` |
-| Tray Quick Settings (`gnome-extensions/local`) | значки трея приложений в Quick Settings | свое расширение, настроек нет |
-| Accent for extensions (`gnome-extensions/local`) | цвет акцента в других расширениях, см. [Цвет акцента](#цвет-акцента) | свое расширение, настроек нет |
+| Расширение                                                                                              | Зачем                                                                | Что изменено в настройках                                                                                |
+| ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| [Accent Icons](https://extensions.gnome.org/extension/7535/accent-directories/)                         | иконки папок в цвет акцента                                          | тема `Adwaita-Void` для любого акцента                                                                   |
+| [Add to Desktop](https://extensions.gnome.org/extension/3240/add-to-desktop/)                           | "добавить на рабочий стол" в меню сетки приложений                   | по умолчанию                                                                                             |
+| [AppGrid Fit](https://extensions.gnome.org/extension/9933/app-grid-icon-size/)                          | размер сетки приложений                                              | 12 столбцов x 6 строк, без пресетов, страницы не объединяются                                            |
+| [Caffeine](https://extensions.gnome.org/extension/517/caffeine/)                                        | не гасить экран                                                      | переключение из командной строки включено                                                                |
+| [Clipboard Indicator](https://extensions.gnome.org/extension/779/clipboard-indicator/)                  | история буфера обмена                                                | 20 записей                                                                                               |
+| [Dash in Panel](https://extensions.gnome.org/extension/7855/dash-in-panel/)                             | значки приложений на панели                                          | кнопка Activities видна; кнопка сетки приложений, док в обзоре и обзор при входе выключены               |
+| [Gtk4 Desktop Icons NG (DING)](https://extensions.gnome.org/extension/5263/gtk4-desktop-icons-ng-ding/) | значки на рабочем столе                                              | по умолчанию                                                                                             |
+| [Just Perfection](https://extensions.gnome.org/extension/3843/just-perfection/)                         | тонкая настройка shell                                               | по умолчанию                                                                                             |
+| [Media Controls](https://extensions.gnome.org/extension/4470/media-controls/)                           | плеер на панели                                                      | справа, фиксированная ширина подписи 200px, без кнопок "назад", "вперед" и перемотки, без ползунка трека |
+| [Top Bar Organizer](https://extensions.gnome.org/extension/4356/top-bar-organizer/)                     | порядок элементов панели                                             | см. `settings/top-bar-organizer.ini`                                                                     |
+| [Gradia Capture](https://github.com/AlexanderVanhee/gradia-companion)                                   | скриншоты через Gradia                                               | цвета инструментов разметки; ставится приложением Gradia, на extensions.gnome.org его нет                |
+| [Auto Move Windows](https://gitlab.gnome.org/GNOME/gnome-shell-extensions)                              | приложения на свои рабочие столы                                     | по умолчанию                                                                                             |
+| [Removable Drive Menu](https://gitlab.gnome.org/GNOME/gnome-shell-extensions)                           | подключенные диски на панели                                         | по умолчанию                                                                                             |
+| [Places Status Indicator](https://gitlab.gnome.org/GNOME/gnome-shell-extensions)                        | меню "Места" на панели                                               | по умолчанию                                                                                             |
+| [User Themes](https://gitlab.gnome.org/GNOME/gnome-shell-extensions)                                    | загружает тему MyShell                                               | тема `MyShell`                                                                                           |
+| Tray Quick Settings (`gnome-extensions/local`)                                                          | значки трея приложений в Quick Settings                              | свое расширение, настроек нет                                                                            |
+| Accent for extensions (`gnome-extensions/local`)                                                        | цвет акцента в других расширениях, см. [Цвет акцента](#цвет-акцента) | свое расширение, настроек нет                                                                            |
 
 Четыре расширения перед двумя последними идут в пакете дистрибутива
 `gnome-shell-extensions`. Двух последних нет на extensions.gnome.org:
