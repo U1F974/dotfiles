@@ -5,11 +5,28 @@ import St from 'gi://St';
 
 import {itemId} from '../logic.js';
 
+/** @typedef {import('../sni/item.js').TrayItem} TrayItem */
+/** @typedef {import('./trayButton.js').TrayButton} TrayButton */
+
 // Quick Settings grid width in columns (N_QUICK_SETTINGS_COLUMNS in panel.js).
 const QS_COLUMNS = 2;
 
+/**
+ * Row of tray buttons across the bottom of the Quick Settings menu. Hidden
+ * when it has no visible button (Passive items are hidden).
+ */
 export const TrayRow = GObject.registerClass(
 class TrayRow extends St.BoxLayout {
+    /** @type {Map<string, TrayButton>} item id -> button */
+    #buttons;
+    /** @type {boolean} false hides the row whatever it has (lock screen) */
+    #enabled;
+
+    /**
+     * Adds itself to the menu.
+     *
+     * @param {import('resource:///org/gnome/shell/ui/quickSettings.js').QuickSettingsMenu} quickSettingsMenu
+     */
     constructor(quickSettingsMenu) {
         super({
             style_class: 'tray-qs-row',
@@ -17,8 +34,8 @@ class TrayRow extends St.BoxLayout {
             x_align: Clutter.ActorAlign.FILL,
             visible: false,
         });
-        this._buttons = new Map(); // id -> TrayButton
-        this._enabled = true;
+        this.#buttons = new Map();
+        this.#enabled = true;
 
         quickSettingsMenu.addItem(this, QS_COLUMNS);
         // Items appended after us (e.g. by other extensions) would push the row up.
@@ -28,42 +45,60 @@ class TrayRow extends St.BoxLayout {
         }, this);
     }
 
-    // order: ids in registration order; the button goes before the first later one.
+    /**
+     * Adds the button of an item, replacing an older one of the same item.
+     *
+     * @param {TrayItem} item
+     * @param {TrayButton} button
+     * @param {string[]} [order] - item ids in registration order; the button goes before the
+     *   first later one
+     */
     add(item, button, order = []) {
         const id = itemId(item.busName, item.objectPath);
         this.remove(id);
         const rank = order.indexOf(id);
         const next = rank < 0 ? null : this.get_children().find(b =>
             order.indexOf(itemId(b.item.busName, b.item.objectPath)) > rank);
-        this._buttons.set(id, button);
+        this.#buttons.set(id, button);
         if (next)
             this.insert_child_below(button, next);
         else
             this.add_child(button);
-        item.connectObject('changed', () => this._sync(), button);
-        this._sync();
+        item.connectObject('changed', () => this.#sync(), button);
+        this.#sync();
     }
 
+    /**
+     * Removes and destroys the button of an item, if there is one.
+     *
+     * @param {string} id - item id
+     */
     remove(id) {
-        const button = this._buttons.get(id);
+        const button = this.#buttons.get(id);
         if (!button)
             return;
-        this._buttons.delete(id);
+        this.#buttons.delete(id);
         button.destroy();
-        this._sync();
+        this.#sync();
     }
 
+    /**
+     * @param {boolean} visible - false hides the row whatever it has
+     */
     setVisible(visible) {
-        this._enabled = visible;
-        this._sync();
+        this.#enabled = visible;
+        this.#sync();
     }
 
-    _sync() {
+    /**
+     * Hides Passive items, and the row if nothing is left to show.
+     */
+    #sync() {
         let any = false;
-        for (const button of this._buttons.values()) {
+        for (const button of this.#buttons.values()) {
             button.visible = button.item.status !== 'Passive';
             any ||= button.visible;
         }
-        this.visible = this._enabled && any;
+        this.visible = this.#enabled && any;
     }
 });

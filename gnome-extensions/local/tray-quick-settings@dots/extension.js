@@ -19,95 +19,154 @@ import {TrayRow} from './ui/trayRow.js';
 const LOAD_RETRIES = 2;
 const LOAD_RETRY_MS = 2000;
 
+/**
+ * Tray host: owns the tray name on the bus, loads the registered items and
+ * shows them in Quick Settings and, when they want attention, in the panel.
+ */
 export default class TrayExtension extends Extension {
+    /** @type {?Map<string, TrayItem>} item id -> loaded item */
+    #items;
+    /** @type {?Set<string>} ids of items being loaded */
+    #loading;
+    /** @type {?Set<number>} GLib sources of retry waits */
+    #timeouts;
+    /** @type {?TrayRow} null while another host owns the tray name */
+    #row;
+    /** @type {?AttentionIndicator} panel item */
+    #attention;
+    /** @type {?AppMenu} the one open app menu */
+    #appMenu;
+    /** @type {?Watcher} */
+    #watcher;
+    /** @type {number[]} signal ids on the watcher */
+    #watcherIds;
+    /** @type {number} signal id on Main.sessionMode */
+    #sessionId;
+
+    /**
+     * Only empty state here: objects are created in enable().
+     *
+     * @param {object} metadata - metadata.json
+     */
+    constructor(metadata) {
+        super(metadata);
+        this.#items = null;
+        this.#loading = null;
+        this.#timeouts = null;
+        this.#row = null;
+        this.#attention = null;
+        this.#appMenu = null;
+        this.#watcher = null;
+        this.#watcherIds = [];
+        this.#sessionId = 0;
+    }
+
+    /**
+     * Starts the watcher; the row appears once the tray name is ours.
+     */
     enable() {
-        this._items = new Map(); // id -> TrayItem
-        this._loading = new Set(); // ids being loaded
-        this._timeouts = new Set(); // GLib sources of retry waits
-        this._row = null;
-        this._attention = null; // panel item
-        this._appMenu = null; // the one open app menu
+        this.#items = new Map();
+        this.#loading = new Set();
+        this.#timeouts = new Set();
 
-        this._watcher = new Watcher();
-        this._watcherIds = [
-            this._watcher.connect('item-added', (_w, id, busName, objectPath) =>
-                this._addItem(id, busName, objectPath)),
-            this._watcher.connect('item-removed', (_w, id) => this._removeItem(id)),
-            this._watcher.connect('name-acquired', () => this._onNameAcquired()),
-            this._watcher.connect('name-busy', () => this._onNameBusy()),
+        this.#watcher = new Watcher();
+        this.#watcherIds = [
+            this.#watcher.connect('item-added', (_w, id, busName, objectPath) =>
+                this.#addItem(id, busName, objectPath)),
+            this.#watcher.connect('item-removed', (_w, id) => this.#removeItem(id)),
+            this.#watcher.connect('name-acquired', () => this.#onNameAcquired()),
+            this.#watcher.connect('name-busy', () => this.#onNameBusy()),
         ];
-        this._sessionId = Main.sessionMode.connect('updated', () => this._syncVisible());
+        this.#sessionId = Main.sessionMode.connect('updated', () => this.#syncVisible());
 
-        this._watcher.start();
+        this.#watcher.start();
     }
 
+    /**
+     * Releases the tray name and removes everything from Quick Settings and the panel.
+     */
     disable() {
-        Main.sessionMode.disconnect(this._sessionId);
-        this._sessionId = 0;
-        for (const id of this._watcherIds)
-            this._watcher.disconnect(id);
-        this._watcherIds = [];
-        this._watcher.stop();
-        this._watcher = null;
-        for (const id of this._timeouts)
+        Main.sessionMode.disconnect(this.#sessionId);
+        this.#sessionId = 0;
+        for (const id of this.#watcherIds)
+            this.#watcher.disconnect(id);
+        this.#watcherIds = [];
+        this.#watcher.stop();
+        this.#watcher = null;
+        for (const id of this.#timeouts)
             GLib.source_remove(id);
-        this._timeouts = null;
-        this._loading = null;
+        this.#timeouts = null;
+        this.#loading = null;
 
-        this._closeAppMenu();
-        this._dropAll();
-        this._items = null;
+        this.#closeAppMenu();
+        this.#dropAll();
+        this.#items = null;
     }
 
-    _onNameAcquired() {
-        if (!this._row) {
-            this._row = new TrayRow(Main.panel.statusArea.quickSettings.menu);
-            this._attention = new AttentionIndicator({
-                onOpenMenu: b => this._openMenu(b, false),
+    /**
+     * We own the tray name: create the row and the panel item, load the items.
+     */
+    #onNameAcquired() {
+        if (!this.#row) {
+            this.#row = new TrayRow(Main.panel.statusArea.quickSettings.menu);
+            this.#attention = new AttentionIndicator({
+                onOpenMenu: b => this.#openMenu(b, false),
             });
-            this._syncVisible();
+            this.#syncVisible();
         }
         // After losing and regaining the name the watcher still lists items we dropped.
-        for (const id of this._watcher.items) {
-            if (this._items.has(id))
+        for (const id of this.#watcher.items) {
+            if (this.#items.has(id))
                 continue;
             const slash = id.indexOf('/');
-            this._addItem(id, id.slice(0, slash), id.slice(slash));
+            this.#addItem(id, id.slice(0, slash), id.slice(slash));
         }
     }
 
-    // Another tray host owns the name, or we lost it: no row at all.
-    _onNameBusy() {
-        this._dropAll();
+    /**
+     * Another tray host owns the name, or we lost it: no row at all.
+     */
+    #onNameBusy() {
+        this.#dropAll();
     }
 
-    _dropAll() {
-        this._row?.destroy();
-        this._row = null;
-        this._attention?.destroy();
-        this._attention = null;
-        for (const item of this._items.values()) {
+    /**
+     * Destroys the row, the panel item and every loaded item.
+     */
+    #dropAll() {
+        this.#row?.destroy();
+        this.#row = null;
+        this.#attention?.destroy();
+        this.#attention = null;
+        for (const item of this.#items.values()) {
             item.disconnectObject(this);
             item.destroy();
         }
-        this._items.clear();
+        this.#items.clear();
     }
 
-    // Also called again for an id the app registers again: a no-op if it is loaded or loading.
-    async _addItem(id, busName, objectPath) {
-        const watcher = this._watcher;
-        const loading = this._loading;
-        if (this._items.has(id) || loading.has(id))
+    /**
+     * Loads a registered item and adds its button. Also called again for an id the app
+     * registers again: a no-op if it is loaded or loading.
+     *
+     * @param {string} id
+     * @param {string} busName
+     * @param {string} objectPath
+     */
+    async #addItem(id, busName, objectPath) {
+        const watcher = this.#watcher;
+        const loading = this.#loading;
+        if (this.#items.has(id) || loading.has(id))
             return;
         loading.add(id);
         let item;
         try {
             item = await retry(() => TrayItem.create(Gio.DBus.session, busName, objectPath), {
                 retries: LOAD_RETRIES,
-                wait: () => this._wait(LOAD_RETRY_MS),
+                wait: () => this.#wait(LOAD_RETRY_MS),
                 // Stop once disabled, unregistered, loaded elsewhere or the name is lost.
-                keepGoing: () => this._watcher === watcher && watcher.items.includes(id) &&
-                    !this._items.has(id) && this._row !== null,
+                keepGoing: () => this.#watcher === watcher && watcher.items.includes(id) &&
+                    !this.#items.has(id) && this.#row !== null,
             });
         } catch (e) {
             console.warn(`tray item ${id}: ${e.message}`);
@@ -118,46 +177,63 @@ export default class TrayExtension extends Extension {
         if (!item)
             return;
         // Disabled, removed or name lost while loading.
-        if (this._watcher !== watcher || !watcher.items.includes(id) ||
-            this._items.has(id) || !this._row) {
+        if (this.#watcher !== watcher || !watcher.items.includes(id) ||
+            this.#items.has(id) || !this.#row) {
             item.destroy();
             return;
         }
-        this._items.set(id, item);
-        this._row.add(item, new TrayButton(item, {onOpenMenu: b => this._openMenu(b, true)}),
+        this.#items.set(id, item);
+        this.#row.add(item, new TrayButton(item, {onOpenMenu: b => this.#openMenu(b, true)}),
             watcher.items);
-        item.connectObject('changed', () => this._syncAttention(), this);
-        this._syncAttention();
+        item.connectObject('changed', () => this.#syncAttention(), this);
+        this.#syncAttention();
     }
 
-    _wait(ms) {
+    /**
+     * A pause that disable() can cancel (it then never resolves).
+     *
+     * @param {number} ms
+     * @returns {Promise<void>}
+     */
+    #wait(ms) {
         return new Promise(resolve => {
             const sourceId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, ms, () => {
-                this._timeouts.delete(sourceId);
+                this.#timeouts.delete(sourceId);
                 resolve();
                 return GLib.SOURCE_REMOVE;
             });
-            this._timeouts.add(sourceId);
+            this.#timeouts.add(sourceId);
         });
     }
 
-    _removeItem(id) {
-        const item = this._items.get(id);
-        this._items.delete(id);
-        this._row?.remove(id);
-        this._syncAttention();
+    /**
+     * @param {string} id - item whose app left the bus
+     */
+    #removeItem(id) {
+        const item = this.#items.get(id);
+        this.#items.delete(id);
+        this.#row?.remove(id);
+        this.#syncAttention();
         item?.disconnectObject(this);
         item?.destroy();
     }
 
-    _syncAttention() {
-        const items = this._watcher.items.map(id => this._items.get(id)).filter(Boolean);
-        this._attention?.sync(items);
+    /**
+     * Updates the panel item with the loaded items in registration order.
+     */
+    #syncAttention() {
+        const items = this.#watcher.items.map(id => this.#items.get(id)).filter(Boolean);
+        this.#attention?.sync(items);
     }
 
-    // inRow: the button is in the Quick Settings row (else in the panel).
-    async _openMenu(button, inRow) {
-        this._closeAppMenu();
+    /**
+     * Opens the app menu at a button: its DBusMenu, else the app's own menu (ContextMenu).
+     *
+     * @param {TrayButton} button
+     * @param {boolean} inRow - the button is in the Quick Settings row (else in the panel)
+     */
+    async #openMenu(button, inRow) {
+        this.#closeAppMenu();
         const item = button.item;
         const [x, y] = button.stagePoint();
         if (item.menuPath) {
@@ -165,14 +241,14 @@ export default class TrayExtension extends Extension {
                 closeParent: inRow ? () => Main.panel.closeQuickSettings() : () => {},
                 side: St.Side.TOP,
             });
-            this._appMenu = menu;
+            this.#appMenu = menu;
             try {
                 await menu.open();
                 return;
             } catch (e) {
-                if (this._appMenu !== menu)
+                if (this.#appMenu !== menu)
                     return; // replaced, closed or disabled meanwhile
-                this._appMenu = null;
+                this.#appMenu = null;
             }
         }
         // No usable DBusMenu: the app draws its own popup, which the Quick Settings grab
@@ -182,13 +258,19 @@ export default class TrayExtension extends Extension {
         item.contextMenu(x, y);
     }
 
-    _closeAppMenu() {
-        this._appMenu?.destroy();
-        this._appMenu = null;
+    /**
+     * Closes the open app menu, if any.
+     */
+    #closeAppMenu() {
+        this.#appMenu?.destroy();
+        this.#appMenu = null;
     }
 
-    _syncVisible() {
-        this._row?.setVisible(!Main.sessionMode.isLocked);
-        this._attention?.setVisible(!Main.sessionMode.isLocked);
+    /**
+     * Hides the row and the panel item on the lock screen.
+     */
+    #syncVisible() {
+        this.#row?.setVisible(!Main.sessionMode.isLocked);
+        this.#attention?.setVisible(!Main.sessionMode.isLocked);
     }
 }

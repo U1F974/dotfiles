@@ -6,14 +6,28 @@ import St from 'gi://St';
 
 import {argbToRgba, iconFileFor, itemId, pickPixmap} from '../logic.js';
 
-// Items whose broken pixmap was already logged.
+/**
+ * Items whose broken pixmap was already logged.
+ *
+ * @type {WeakSet<import('../sni/item.js').TrayItem>}
+ */
 const warned = new WeakSet();
 
+/**
+ * @returns {number} scale factor of the stage (HiDPI)
+ */
 function scaleFactor() {
     return St.ThemeContext.get_for_stage(global.stage).scale_factor;
 }
 
-// Themed icon lookup that also searches the app's IconThemePath.
+/**
+ * Themed icon lookup that also searches the app's IconThemePath.
+ *
+ * @param {string} iconName
+ * @param {string} themePath - IconThemePath of the item, may be ''
+ * @param {number} size - in device pixels
+ * @returns {?Gio.Icon}
+ */
 function themedIcon(iconName, themePath, size) {
     if (!iconName)
         return null;
@@ -30,6 +44,11 @@ function themedIcon(iconName, themePath, size) {
     return file ? Gio.FileIcon.new(Gio.File.new_for_path(file)) : null;
 }
 
+/**
+ * @param {Array<[number, number, Uint8Array]>} pixmaps - IconPixmap of the item
+ * @param {number} size - in device pixels
+ * @returns {?St.ImageContent} null if there is no usable pixmap
+ */
 function pixmapIcon(pixmaps, size) {
     const pixmap = pickPixmap(pixmaps, size);
     if (!pixmap)
@@ -44,6 +63,14 @@ function pixmapIcon(pixmaps, size) {
     return content;
 }
 
+/**
+ * Shows the item's icon: a file in its IconThemePath, a themed icon, or its
+ * pixmap; image-missing if none works.
+ *
+ * @param {St.Icon} icon
+ * @param {import('../sni/item.js').TrayItem} item
+ * @param {number} size - in logical pixels
+ */
 export function updateIcon(icon, item, size) {
     const pixelSize = size * scaleFactor();
     icon.icon_size = size;

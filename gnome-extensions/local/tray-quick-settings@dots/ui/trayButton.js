@@ -8,11 +8,37 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {updateIcon} from './icon.js';
 
+/** @typedef {import('../sni/item.js').TrayItem} TrayItem */
+
 const ICON_SIZE = 16;
 const TOOLTIP_DELAY_MS = 300;
 
+/**
+ * Clickable icon of a tray item. Left click: Activate (or the menu if the item
+ * is a menu), middle: SecondaryActivate, right: the app menu, wheel: Scroll.
+ */
 export const TrayButton = GObject.registerClass(
 class TrayButton extends St.Button {
+    /** @type {?TrayItem} null after destroy */
+    #item;
+    /** @type {(button: TrayButton) => void} opens the app menu at this button */
+    #onOpenMenu;
+    /** @type {?St.Label} created on first hover */
+    #tooltip;
+    /** @type {number} GLib source of the tooltip delay, 0 if none */
+    #tooltipId;
+    /** @type {number} smooth scroll not yet sent, horizontal */
+    #scrollDx;
+    /** @type {number} smooth scroll not yet sent, vertical */
+    #scrollDy;
+    /** @type {St.Icon} */
+    #icon;
+
+    /**
+     * @param {TrayItem} item
+     * @param {object} options
+     * @param {(button: TrayButton) => void} options.onOpenMenu - opens the app menu at the button
+     */
     constructor(item, {onOpenMenu}) {
         super({
             style_class: 'tray-qs-button',
@@ -21,66 +47,85 @@ class TrayButton extends St.Button {
             track_hover: true,
             reactive: true,
         });
-        this._item = item;
-        this._onOpenMenu = onOpenMenu;
-        this._tooltip = null;
-        this._tooltipId = 0;
-        this._scrollDx = 0;
-        this._scrollDy = 0;
+        this.#item = item;
+        this.#onOpenMenu = onOpenMenu;
+        this.#tooltip = null;
+        this.#tooltipId = 0;
+        this.#scrollDx = 0;
+        this.#scrollDy = 0;
 
-        this._icon = new St.Icon();
-        this.set_child(this._icon);
+        this.#icon = new St.Icon();
+        this.set_child(this.#icon);
 
-        item.connectObject('changed', () => this._sync(), this);
-        this.connect('notify::hover', () => this._onHover());
+        item.connectObject('changed', () => this.#sync(), this);
+        this.connect('notify::hover', () => this.#onHover());
         this.connect('notify::mapped', () => {
             if (!this.mapped)
-                this._hideTooltip();
+                this.#hideTooltip();
         });
-        this.connect('destroy', () => this._onDestroy());
+        this.connect('destroy', () => this.#onDestroy());
 
-        this._sync();
+        this.#sync();
     }
 
+    /** @type {?TrayItem} null after destroy */
     get item() {
-        return this._item;
+        return this.#item;
     }
 
-    // Center of the button in stage coordinates, for SNI x/y arguments.
+    /**
+     * Center of the button in stage coordinates, for SNI x/y arguments.
+     *
+     * @returns {[number, number]}
+     */
     stagePoint() {
         const [x, y] = this.get_transformed_position();
         const [w, h] = this.get_transformed_size();
         return [Math.round(x + w / 2), Math.round(y + h / 2)];
     }
 
-    _tooltipText() {
-        const item = this._item;
+    /**
+     * @returns {string} tooltip title, else title, else id of the item
+     */
+    #tooltipText() {
+        const item = this.#item;
         return item.tooltipTitle || item.title || item.id;
     }
 
-    _sync() {
-        updateIcon(this._icon, this._item, ICON_SIZE);
-        this.accessible_name = this._tooltipText();
-        this._tooltip?.set_text(this._tooltipText());
+    /**
+     * Shows the current icon and tooltip of the item.
+     */
+    #sync() {
+        updateIcon(this.#icon, this.#item, ICON_SIZE);
+        this.accessible_name = this.#tooltipText();
+        this.#tooltip?.set_text(this.#tooltipText());
     }
 
+    /**
+     * @param {number} button - Clutter.BUTTON_*
+     */
     vfunc_clicked(button) {
-        const item = this._item;
+        const item = this.#item;
         const [x, y] = this.stagePoint();
-        this._hideTooltip();
+        this.#hideTooltip();
         if (button === Clutter.BUTTON_MIDDLE) {
             item.secondaryActivate(x, y);
         } else if (button === Clutter.BUTTON_SECONDARY) {
-            this._onOpenMenu(this);
+            this.#onOpenMenu(this);
         } else if (item.itemIsMenu) {
-            this._onOpenMenu(this);
+            this.#onOpenMenu(this);
         } else {
             item.activate(x, y);
             Main.panel.closeQuickSettings();
         }
     }
 
-    // SNI Scroll: delta > 0 is up/left, as Qt's angleDelta.
+    /**
+     * SNI Scroll: delta > 0 is up/left, as Qt's angleDelta.
+     *
+     * @param {Clutter.Event} event
+     * @returns {boolean} Clutter.EVENT_STOP
+     */
     vfunc_scroll_event(event) {
         // Mutter sends each wheel step twice (smooth + emulated discrete); take the real one.
         // Stop (not propagate as slider.js does) so no ancestor acts on the twin either.
@@ -88,63 +133,74 @@ class TrayButton extends St.Button {
             return Clutter.EVENT_STOP;
         switch (event.get_scroll_direction()) {
         case Clutter.ScrollDirection.UP:
-            this._item.scroll(1, 'vertical');
+            this.#item.scroll(1, 'vertical');
             break;
         case Clutter.ScrollDirection.DOWN:
-            this._item.scroll(-1, 'vertical');
+            this.#item.scroll(-1, 'vertical');
             break;
         case Clutter.ScrollDirection.LEFT:
-            this._item.scroll(1, 'horizontal');
+            this.#item.scroll(1, 'horizontal');
             break;
         case Clutter.ScrollDirection.RIGHT:
-            this._item.scroll(-1, 'horizontal');
+            this.#item.scroll(-1, 'horizontal');
             break;
         case Clutter.ScrollDirection.SMOOTH:
-            this._smoothScroll(...event.get_scroll_delta());
+            this.#smoothScroll(...event.get_scroll_delta());
             break;
         }
         return Clutter.EVENT_STOP;
     }
 
-    // Touchpads send fractional deltas; emit one step per whole unit.
-    _smoothScroll(dx, dy) {
-        this._scrollDx += dx;
-        this._scrollDy += dy;
-        while (Math.abs(this._scrollDy) >= 1) {
-            const step = Math.sign(this._scrollDy);
-            this._scrollDy -= step;
-            this._item.scroll(-step, 'vertical');
+    /**
+     * Touchpads send fractional deltas; emit one step per whole unit.
+     *
+     * @param {number} dx
+     * @param {number} dy
+     */
+    #smoothScroll(dx, dy) {
+        this.#scrollDx += dx;
+        this.#scrollDy += dy;
+        while (Math.abs(this.#scrollDy) >= 1) {
+            const step = Math.sign(this.#scrollDy);
+            this.#scrollDy -= step;
+            this.#item.scroll(-step, 'vertical');
         }
-        while (Math.abs(this._scrollDx) >= 1) {
-            const step = Math.sign(this._scrollDx);
-            this._scrollDx -= step;
-            this._item.scroll(-step, 'horizontal');
+        while (Math.abs(this.#scrollDx) >= 1) {
+            const step = Math.sign(this.#scrollDx);
+            this.#scrollDx -= step;
+            this.#item.scroll(-step, 'horizontal');
         }
     }
 
-    _onHover() {
+    /**
+     * Shows the tooltip after a delay on hover, hides it when the pointer leaves.
+     */
+    #onHover() {
         if (!this.hover) {
-            this._hideTooltip();
+            this.#hideTooltip();
             return;
         }
-        if (this._tooltipId)
+        if (this.#tooltipId)
             return;
-        this._tooltipId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, TOOLTIP_DELAY_MS, () => {
-            this._tooltipId = 0;
-            this._showTooltip();
+        this.#tooltipId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, TOOLTIP_DELAY_MS, () => {
+            this.#tooltipId = 0;
+            this.#showTooltip();
             return GLib.SOURCE_REMOVE;
         });
     }
 
-    _showTooltip() {
-        const text = this._tooltipText();
+    /**
+     * Shows the tooltip above the button, below it if there is no room.
+     */
+    #showTooltip() {
+        const text = this.#tooltipText();
         if (!text || !this.mapped)
             return;
-        if (!this._tooltip) {
-            this._tooltip = new St.Label({style_class: 'dash-label tray-qs-tooltip'});
-            Main.uiGroup.add_child(this._tooltip);
+        if (!this.#tooltip) {
+            this.#tooltip = new St.Label({style_class: 'dash-label tray-qs-tooltip'});
+            Main.uiGroup.add_child(this.#tooltip);
         }
-        const tooltip = this._tooltip;
+        const tooltip = this.#tooltip;
         tooltip.set_text(text);
         Main.uiGroup.set_child_above_sibling(tooltip, null);
         tooltip.show();
@@ -161,18 +217,24 @@ class TrayButton extends St.Button {
             Math.round(ty));
     }
 
-    _hideTooltip() {
-        if (this._tooltipId) {
-            GLib.source_remove(this._tooltipId);
-            this._tooltipId = 0;
+    /**
+     * Hides the tooltip and cancels a pending one.
+     */
+    #hideTooltip() {
+        if (this.#tooltipId) {
+            GLib.source_remove(this.#tooltipId);
+            this.#tooltipId = 0;
         }
-        this._tooltip?.hide();
+        this.#tooltip?.hide();
     }
 
-    _onDestroy() {
-        this._hideTooltip();
-        this._tooltip?.destroy();
-        this._tooltip = null;
-        this._item = null;
+    /**
+     * Destroys the tooltip and lets go of the item.
+     */
+    #onDestroy() {
+        this.#hideTooltip();
+        this.#tooltip?.destroy();
+        this.#tooltip = null;
+        this.#item = null;
     }
 });

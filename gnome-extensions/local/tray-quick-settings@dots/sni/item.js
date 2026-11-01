@@ -14,193 +14,301 @@ const REFRESH_SIGNALS = [
     'NewTitle', 'NewToolTip', 'NewIconThemePath',
 ];
 
+/**
+ * @param {*} v
+ * @returns {string} v if it is a string, else ''
+ */
 const str = v => (typeof v === 'string' ? v : '');
+
+/**
+ * @param {*} v
+ * @returns {Array} v if it is an array, else []
+ */
 const arr = v => (Array.isArray(v) ? v : []);
 
+/**
+ * Client of one org.kde.StatusNotifierItem: its properties, kept up to date,
+ * and its methods. Signal: changed, after the properties were loaded again.
+ */
 export const TrayItem = GObject.registerClass({
     Signals: {
         'changed': {},
     },
 }, class TrayItem extends GObject.Object {
-    // Loads all properties; rejects on error or after 2000 ms of silence.
-    // Subscribes first: the match rule reaches the bus before GetAll on the same connection,
-    // so no signal sent after GetAll is lost. Signals during the load only set _pending.
+    /** @type {Gio.DBusConnection} */
+    #connection;
+    /** @type {string} */
+    #busName;
+    /** @type {string} */
+    #objectPath;
+    /** @type {Object<string, *>} unpacked item properties */
+    #props;
+    /** @type {number[]} D-Bus signal subscription ids */
+    #subIds;
+    /** @type {boolean} a load is running */
+    #refreshing;
+    /** @type {boolean} a signal came during the load: load again */
+    #pending;
+    /** @type {boolean} */
+    #destroyed;
+    /** @type {boolean} only the first failed call is logged */
+    #errorLogged;
+
+    /**
+     * Loads all properties; rejects on error or after 2000 ms of silence.
+     * Subscribes first: the match rule reaches the bus before GetAll on the
+     * same connection, so no signal sent after GetAll is lost. Signals during
+     * the load only set #pending.
+     *
+     * @param {Gio.DBusConnection} connection
+     * @param {string} busName
+     * @param {string} objectPath
+     * @returns {Promise<TrayItem>}
+     */
     static async create(connection, busName, objectPath) {
         const item = new TrayItem(connection, busName, objectPath);
-        item._subscribe();
-        item._refreshing = true;
+        item.#subscribe();
+        item.#refreshing = true;
         try {
-            await item._load();
+            await item.#load();
         } catch (e) {
             item.destroy();
             throw e;
         } finally {
-            item._refreshing = false;
+            item.#refreshing = false;
         }
-        if (item._pending)
-            item._refresh();
+        if (item.#pending)
+            item.#refresh();
         return item;
     }
 
-    _init(connection, busName, objectPath) {
-        super._init();
-        this._connection = connection;
-        this._busName = busName;
-        this._objectPath = objectPath;
-        this._props = {};
-        this._subIds = [];
-        this._refreshing = false;
-        this._pending = false;
-        this._destroyed = false;
-        this._errorLogged = false;
+    /**
+     * Use create(): the item has no properties until they are loaded.
+     *
+     * @param {Gio.DBusConnection} connection
+     * @param {string} busName
+     * @param {string} objectPath
+     */
+    constructor(connection, busName, objectPath) {
+        super();
+        this.#connection = connection;
+        this.#busName = busName;
+        this.#objectPath = objectPath;
+        this.#props = {};
+        this.#subIds = [];
+        this.#refreshing = false;
+        this.#pending = false;
+        this.#destroyed = false;
+        this.#errorLogged = false;
     }
 
+    /** @type {string} Id property */
     get id() {
-        return str(this._props.Id);
+        return str(this.#props.Id);
     }
 
+    /** @type {string} Title property */
     get title() {
-        return str(this._props.Title);
+        return str(this.#props.Title);
     }
 
+    /** @type {string} Status property: Passive, Active or NeedsAttention */
     get status() {
-        return str(this._props.Status);
+        return str(this.#props.Status);
     }
 
+    /** @type {string} IconName property */
     get iconName() {
-        return str(this._props.IconName);
+        return str(this.#props.IconName);
     }
 
+    /** @type {string} IconThemePath property */
     get iconThemePath() {
-        return str(this._props.IconThemePath);
+        return str(this.#props.IconThemePath);
     }
 
+    /** @type {Array<[number, number, Uint8Array]>} IconPixmap property */
     get iconPixmap() {
-        return arr(this._props.IconPixmap);
+        return arr(this.#props.IconPixmap);
     }
 
+    /** @type {string} AttentionIconName property */
     get attentionIconName() {
-        return str(this._props.AttentionIconName);
+        return str(this.#props.AttentionIconName);
     }
 
+    /** @type {Array<[number, number, Uint8Array]>} AttentionIconPixmap property */
     get attentionIconPixmap() {
-        return arr(this._props.AttentionIconPixmap);
+        return arr(this.#props.AttentionIconPixmap);
     }
 
+    /** @type {string} title of the ToolTip property */
     get tooltipTitle() {
-        return str(arr(this._props.ToolTip)[2]);
+        return str(arr(this.#props.ToolTip)[2]);
     }
 
+    /** @type {string} Menu property: object path of the DBusMenu, or '' */
     get menuPath() {
-        return str(this._props.Menu);
+        return str(this.#props.Menu);
     }
 
+    /** @type {boolean} ItemIsMenu property: a left click opens the menu */
     get itemIsMenu() {
-        return this._props.ItemIsMenu === true;
+        return this.#props.ItemIsMenu === true;
     }
 
+    /** @type {boolean} the app wants attention, see isAttention() */
     get attention() {
         return isAttention(this.status, this.iconName);
     }
 
+    /** @type {string} */
     get busName() {
-        return this._busName;
+        return this.#busName;
     }
 
+    /** @type {string} */
     get objectPath() {
-        return this._objectPath;
+        return this.#objectPath;
     }
 
-    async _load() {
-        const reply = await this._connection.call(
-            this._busName, this._objectPath, 'org.freedesktop.DBus.Properties', 'GetAll',
+    /**
+     * Loads all properties with GetAll.
+     */
+    async #load() {
+        const reply = await this.#connection.call(
+            this.#busName, this.#objectPath, 'org.freedesktop.DBus.Properties', 'GetAll',
             new GLib.Variant('(s)', [ITEM_IFACE]), new GLib.VariantType('(a{sv})'),
             Gio.DBusCallFlags.NONE, TIMEOUT_MS, null);
-        this._props = reply.recursiveUnpack()[0];
+        this.#props = reply.recursiveUnpack()[0];
     }
 
-    _subscribe() {
-        if (this._destroyed)
+    /**
+     * Subscribes to the signals that announce changed properties.
+     */
+    #subscribe() {
+        if (this.#destroyed)
             return;
         for (const signal of REFRESH_SIGNALS) {
-            this._subIds.push(this._connection.signal_subscribe(
-                this._busName, ITEM_IFACE, signal, this._objectPath, null,
-                Gio.DBusSignalFlags.NONE, () => this._scheduleRefresh()));
+            this.#subIds.push(this.#connection.signal_subscribe(
+                this.#busName, ITEM_IFACE, signal, this.#objectPath, null,
+                Gio.DBusSignalFlags.NONE, () => this.#scheduleRefresh()));
         }
     }
 
-    _scheduleRefresh() {
-        if (this._destroyed)
+    /**
+     * Loads the properties again, or marks a load as pending if one runs.
+     */
+    #scheduleRefresh() {
+        if (this.#destroyed)
             return;
-        if (this._refreshing) {
-            this._pending = true;
+        if (this.#refreshing) {
+            this.#pending = true;
             return;
         }
-        this._refresh();
+        this.#refresh();
     }
 
-    async _refresh() {
-        this._refreshing = true;
+    /**
+     * Loads the properties until no signal came during the load, emits changed
+     * after each successful load.
+     */
+    async #refresh() {
+        this.#refreshing = true;
         try {
             do {
-                this._pending = false;
+                this.#pending = false;
                 try {
-                    await this._load();
+                    await this.#load();
                 } catch (e) {
-                    this._logError(e);
+                    this.#logError(e);
                     continue;
                 }
-                if (this._destroyed)
+                if (this.#destroyed)
                     return;
                 this.emit('changed');
-            } while (this._pending && !this._destroyed);
+            } while (this.#pending && !this.#destroyed);
         } finally {
-            this._refreshing = false;
+            this.#refreshing = false;
         }
     }
 
-    _call(method, params) {
-        if (this._destroyed)
+    /**
+     * Calls an item method; errors are logged.
+     *
+     * @param {string} method
+     * @param {GLib.Variant} params
+     */
+    #call(method, params) {
+        if (this.#destroyed)
             return;
-        this._connection.call(
-            this._busName, this._objectPath, ITEM_IFACE, method, params, null,
-            Gio.DBusCallFlags.NONE, TIMEOUT_MS, null).catch(e => this._logError(e));
+        this.#connection.call(
+            this.#busName, this.#objectPath, ITEM_IFACE, method, params, null,
+            Gio.DBusCallFlags.NONE, TIMEOUT_MS, null).catch(e => this.#logError(e));
     }
 
-    _logError(e) {
-        if (this._errorLogged || this._destroyed)
+    /**
+     * @param {Error} e
+     */
+    #logError(e) {
+        if (this.#errorLogged || this.#destroyed)
             return;
-        this._errorLogged = true;
-        console.warn(`tray item ${itemId(this._busName, this._objectPath)}: ${e.message}`);
+        this.#errorLogged = true;
+        console.warn(`tray item ${itemId(this.#busName, this.#objectPath)}: ${e.message}`);
     }
 
+    /**
+     * Activate: usually shows the app window.
+     *
+     * @param {number} x - click position on the stage
+     * @param {number} y
+     */
     activate(x, y) {
-        this._call('Activate', new GLib.Variant('(ii)', [x, y]));
+        this.#call('Activate', new GLib.Variant('(ii)', [x, y]));
     }
 
+    /**
+     * SecondaryActivate (middle click).
+     *
+     * @param {number} x - click position on the stage
+     * @param {number} y
+     */
     secondaryActivate(x, y) {
-        this._call('SecondaryActivate', new GLib.Variant('(ii)', [x, y]));
+        this.#call('SecondaryActivate', new GLib.Variant('(ii)', [x, y]));
     }
 
+    /**
+     * ContextMenu: the app shows its own menu.
+     *
+     * @param {number} x - click position on the stage
+     * @param {number} y
+     */
     contextMenu(x, y) {
-        this._call('ContextMenu', new GLib.Variant('(ii)', [x, y]));
+        this.#call('ContextMenu', new GLib.Variant('(ii)', [x, y]));
     }
 
+    /**
+     * @param {number} delta - steps; > 0 is up/left
+     * @param {'vertical'|'horizontal'} orientation
+     */
     scroll(delta, orientation) {
-        this._call('Scroll', new GLib.Variant('(is)', [delta, orientation]));
+        this.#call('Scroll', new GLib.Variant('(is)', [delta, orientation]));
     }
 
+    /**
+     * Unsubscribes; calls and loads after this do nothing.
+     */
     destroy() {
-        if (this._destroyed)
+        if (this.#destroyed)
             return;
-        this._destroyed = true;
-        for (const id of this._subIds) {
+        this.#destroyed = true;
+        for (const id of this.#subIds) {
             try {
-                this._connection.signal_unsubscribe(id);
+                this.#connection.signal_unsubscribe(id);
             } catch (e) {
                 // connection already closed
             }
         }
-        this._subIds = [];
+        this.#subIds = [];
     }
 });
