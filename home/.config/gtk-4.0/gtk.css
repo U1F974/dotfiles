@@ -47,6 +47,13 @@ headerbar viewswitcher.wide {
 headerbar viewswitcher button.toggle {
   padding: 0;                    /* default 0, our headerbar button rule set 4px 8px */
 }
+/* Toggle groups (Vlessy mode switcher): 34px by default, which stretches
+   the headerbar and the window controls. Their items are toggle nodes, not
+   buttons, so the headerbar button rule above misses them.
+   22px + 2*3px group padding = 28px. */
+headerbar toggle-group > toggle {
+  min-height: 22px;              /* default calc(34px - 2*3px) */
+}
 
 /* Window controls (minimize, maximize, close): rounded squares like
    calendar days in the shell, hover colors from Fluent. Adwaita draws a
@@ -97,6 +104,15 @@ headerbar.default-decoration windowcontrols > button.image-button {
 headerbar .title,
 headerbar .subtitle {
   line-height: 0.8;              /* default 1 (factor of the font own line height) */
+}
+
+/* Pill buttons (Select in the Nautilus file chooser, start pages): 44px tall
+   by default, and with our 3px radius they turn into big blocks. 28px like
+   the headerbar buttons, sides scaled like the height (44 -> 28px). */
+menubutton.pill > button,
+button.pill {
+  min-height: 20px;              /* default 24px */
+  padding: 4px 20px;             /* default 10px 32px */
 }
 
 /* Nautilus: path bar and search entry share a stack, the tallest page sets

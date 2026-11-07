@@ -131,6 +131,7 @@ GNOME Shell (`home/.local/share/themes/MyShell/gnome-shell/gnome-shell.css`):
 
 GTK 4 / libadwaita (`home/.config/gtk-4.0/`) and GTK 3 (`home/.config/gtk-3.0/`):
 - Headerbars 36px instead of 47px, buttons and entries 28px.
+- Pill buttons (`.pill`, libadwaita) 28px instead of 44px.
 - Window buttons are 28px rounded squares; hover is gray, close turns red.
 - Corner radius 3px for windows, menus, buttons, entries, lists, cards.
   Switches, sliders, avatars and other round shapes stay round.

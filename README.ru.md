@@ -133,6 +133,7 @@ GNOME Shell (`home/.local/share/themes/MyShell/gnome-shell/gnome-shell.css`):
 
 GTK 4 / libadwaita (`home/.config/gtk-4.0/`) и GTK 3 (`home/.config/gtk-3.0/`):
 - Заголовки окон 36px вместо 47px, кнопки и поля ввода в них 28px.
+- Кнопки-"таблетки" (`.pill`, libadwaita) 28px вместо 44px.
 - Кнопки окна квадраты 28px со скруглением; при наведении серые,
   "закрыть" красная.
 - Скругление 3px у окон, меню, кнопок, полей, списков, карточек.
